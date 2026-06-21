@@ -1,0 +1,17 @@
+<!--index.wxml-->
+<navigation-bar title="boboshop" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="page">
+  <!-- 顶部搜索栏 -->
+  <view class="search-bar" bindtap="goToSearch">
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索商品关键词</text>
+    </view>
+  </view>
+
+  <!-- 主内容区（预留） -->
+  <view class="main-content">
+    <text class="empty-tip">更多内容敬请期待</text>
+  </view>
+</view>

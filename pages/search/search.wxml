@@ -1,0 +1,159 @@
+<!--pages/search/search.wxml-->
+<navigation-bar title="商品搜索" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="page">
+  <!-- 搜索栏区域 -->
+  <view class="search-bar">
+    <view class="search-input-wrapper {{inputFocus ? 'search-input-focus' : ''}}">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="搜索商品关键词"
+        placeholder-class="search-placeholder"
+        value="{{keyword}}"
+        bindinput="onSearchInput"
+        bindfocus="onSearchFocus"
+        bindblur="onSearchBlur"
+        bindconfirm="onSearchConfirm"
+        confirm-type="search"
+      />
+      <view wx:if="{{keyword}}" class="clear-btn" bindtap="onClearInput">
+        <text class="clear-icon">✕</text>
+      </view>
+    </view>
+    <text class="search-btn" bindtap="onSearchConfirm">搜索</text>
+  </view>
+
+  <!-- 搜索历史面板 -->
+  <view wx:if="{{showHistory && searchHistory.length > 0}}" class="history-panel">
+    <view class="history-header">
+      <text class="history-title">搜索历史</text>
+      <text class="history-clear" bindtap="clearHistory">清空</text>
+    </view>
+    <view class="history-tags">
+      <view
+        wx:for="{{searchHistory}}"
+        wx:key="index"
+        class="history-tag"
+        bindtap="onHistoryTap"
+        data-keyword="{{item}}"
+      >
+        <text class="history-tag-text">{{item}}</text>
+        <text
+          class="history-tag-del"
+          catchtap="deleteHistoryItem"
+          data-index="{{index}}"
+        >✕</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 平台筛选Tab -->
+  <view class="platform-tabs">
+    <scroll-view class="tabs-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{platforms}}"
+        wx:key="key"
+        class="tab-item {{platform === item.key ? 'tab-active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onPlatformChange"
+      >
+        <text
+          class="tab-text"
+          style="{{platform === item.key ? 'color:' + item.color + ';font-weight:600;' : ''}}"
+        >{{item.name}}</text>
+        <view
+          wx:if="{{platform === item.key}}"
+          class="tab-line"
+          style="background:{{item.color}};"
+        ></view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 商品列表 -->
+  <scroll-view
+    class="product-scroll"
+    scroll-y
+    refresher-enabled
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onRefresh"
+    bindscrolltolower="onScrollToLower"
+    lower-threshold="100"
+  >
+    <!-- 初始状态：引导搜索 -->
+    <view wx:if="{{firstLoad}}" class="state-container">
+      <view class="state-icon">
+        <text class="state-emoji">🔍</text>
+      </view>
+      <text class="state-text">输入关键词搜索全网好物</text>
+      <text class="state-sub">支持淘宝、京东、拼多多、抖音等平台</text>
+    </view>
+
+    <!-- 搜索无结果 -->
+    <view wx:elif="{{empty && !loading}}" class="state-container">
+      <view class="state-icon">
+        <text class="state-emoji">📦</text>
+      </view>
+      <text class="state-text">暂无相关商品</text>
+      <text class="state-sub">试试其他关键词吧</text>
+    </view>
+
+    <!-- 商品网格 -->
+    <view wx:else class="product-grid">
+      <view
+        wx:for="{{productList}}"
+        wx:key="id"
+        class="product-card"
+        data-id="{{item.id}}"
+        bindtap="onProductTap"
+      >
+        <!-- 商品图片 -->
+        <image class="product-img" src="{{item.image}}" mode="aspectFill" lazy-load="{{true}}"></image>
+
+        <!-- 平台标签 -->
+        <view class="platform-tag">
+          <text wx:if="{{item.platform === 'taobao'}}" style="background:#ff5000;">淘宝</text>
+          <text wx:elif="{{item.platform === 'jd'}}" style="background:#c91623;">京东</text>
+          <text wx:elif="{{item.platform === 'pdd'}}" style="background:#e02e24;">拼多多</text>
+          <text wx:elif="{{item.platform === 'douyin'}}" style="background:#000;">抖音</text>
+          <text wx:elif="{{item.platform === 'vip'}}" style="background:#E4007F;">唯品会</text>
+        </view>
+
+        <!-- 商品信息 -->
+        <view class="product-info">
+          <!-- 标题 -->
+          <text class="product-title">{{item.title}}</text>
+
+          <!-- 价格行 -->
+          <view class="product-price-row">
+            <view class="price-left">
+              <text class="price-symbol">¥</text>
+              <text class="price-value">{{item.price}}</text>
+              <text wx:if="{{item.couponAmount}}" class="coupon-tag">券</text>
+            </view>
+            <text class="sales-text">已售{{item.salesText}}</text>
+          </view>
+
+          <!-- 原价 + 返利 -->
+          <view class="product-bottom-row">
+            <text class="original-price">¥{{item.originalPrice}}</text>
+            <text class="rebate-text">返¥{{item.rebate}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-row">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view wx:if="{{!hasMore && productList.length > 0 && !loading}}" class="loading-row">
+      <text class="loading-text no-more">— 已经到底了 —</text>
+    </view>
+  </scroll-view>
+</view>

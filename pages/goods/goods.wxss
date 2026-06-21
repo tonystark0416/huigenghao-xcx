@@ -1,0 +1,218 @@
+/**pages/goods/goods.wxss**/
+
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 加载态 */
+.loading-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 滚动区 */
+.detail-scroll {
+  flex: 1;
+  min-height: 0;
+  height: 0;
+}
+
+/* 商品主图 */
+.goods-image {
+  width: 100%;
+  height: 750rpx;
+  display: block;
+  background: #f8f8f8;
+}
+
+/* 价格区域 */
+.price-section {
+  background: #fff;
+  padding: 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 12rpx;
+}
+
+.price-symbol {
+  font-size: 28rpx;
+  color: #ff5000;
+  font-weight: 600;
+}
+
+.price-value {
+  font-size: 48rpx;
+  color: #ff5000;
+  font-weight: 700;
+  line-height: 1;
+  margin-right: 12rpx;
+}
+
+.original-price {
+  font-size: 24rpx;
+  color: #bbb;
+  text-decoration: line-through;
+  margin-right: 12rpx;
+}
+
+.discount-tag {
+  font-size: 22rpx;
+  color: #fff;
+  background: #ff5000;
+  border-radius: 6rpx;
+  padding: 4rpx 12rpx;
+  line-height: 1.4;
+}
+
+/* 返利行 */
+.rebate-row {
+  display: flex;
+  align-items: baseline;
+}
+
+.rebate-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-right: 8rpx;
+}
+
+.rebate-value {
+  font-size: 32rpx;
+  color: #ff5000;
+  font-weight: 700;
+  margin-right: 4rpx;
+}
+
+.rebate-rate {
+  font-size: 22rpx;
+  color: #ff5000;
+}
+
+/* 商品信息 */
+.info-section {
+  background: #fff;
+  padding: 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.goods-title {
+  font-size: 30rpx;
+  color: #333;
+  line-height: 44rpx;
+}
+
+/* 标签 */
+.tags-row {
+  background: #fff;
+  padding: 0 24rpx 24rpx;
+  margin-bottom: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.tag-item {
+  font-size: 22rpx;
+  color: #ff5000;
+  background: rgba(255, 80, 0, 0.08);
+  border-radius: 6rpx;
+  padding: 4rpx 16rpx;
+  margin-right: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+/* 元信息 */
+.meta-section {
+  background: #fff;
+  padding: 0 24rpx;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.meta-item:last-child {
+  border-bottom: none;
+}
+
+.meta-label {
+  font-size: 26rpx;
+  color: #999;
+  width: 100rpx;
+  flex-shrink: 0;
+}
+
+.meta-value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 16rpx 24rpx;
+  border-top: 1rpx solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.bottom-rebate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.bottom-rebate-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.bottom-rebate-value {
+  font-size: 32rpx;
+  color: #ff5000;
+  font-weight: 700;
+}
+
+.buy-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #ff5000, #ff6b35);
+  border-radius: 40rpx;
+  border: none;
+  padding: 0;
+}
+
+.buy-btn::after {
+  border: none;
+}

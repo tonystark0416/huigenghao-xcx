@@ -1,0 +1,375 @@
+/**pages/search/search.wxss**/
+
+/* ==================== 基础布局 ==================== */
+page {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ==================== 搜索栏 ==================== */
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  gap: 16rpx;
+  flex-shrink: 0;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  height: 72rpx;
+  background: #f5f5f5;
+  border-radius: 40rpx;
+  padding: 0 24rpx;
+  border: 2rpx solid transparent;
+  transition: border-color 0.25s;
+}
+
+.search-input-focus {
+  border-color: #ff5000;
+  background: #fff;
+}
+
+.search-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  height: 72rpx;
+  line-height: 72rpx;
+}
+
+.search-placeholder {
+  color: #bbb;
+  font-size: 26rpx;
+}
+
+.clear-btn {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.clear-icon {
+  font-size: 20rpx;
+  color: #fff;
+  line-height: 1;
+}
+
+.search-btn {
+  font-size: 28rpx;
+  color: #ff5000;
+  font-weight: 600;
+  flex-shrink: 0;
+  padding: 0 8rpx;
+}
+
+/* ==================== 搜索历史 ==================== */
+.history-panel {
+  background: #fff;
+  padding: 20rpx 24rpx 24rpx;
+  border-top: 1rpx solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18rpx;
+}
+
+.history-title {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.history-clear {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.history-tag {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 28rpx;
+  padding: 10rpx 20rpx;
+  gap: 10rpx;
+}
+
+.history-tag-text {
+  font-size: 24rpx;
+  color: #555;
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-tag-del {
+  font-size: 18rpx;
+  color: #bbb;
+  width: 28rpx;
+  height: 28rpx;
+  text-align: center;
+  line-height: 28rpx;
+}
+
+/* ==================== 平台Tab ==================== */
+.platform-tabs {
+  background: #fff;
+  padding-bottom: 4rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.tabs-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.tab-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 32rpx 0;
+  position: relative;
+}
+
+.tab-text {
+  font-size: 28rpx;
+  color: #999;
+  transition: color 0.2s;
+  line-height: 40rpx;
+}
+
+.tab-line {
+  width: 36rpx;
+  height: 6rpx;
+  border-radius: 3rpx;
+  margin-top: 8rpx;
+}
+
+/* ==================== 商品滚动列表 ==================== */
+.product-scroll {
+  flex: 1;
+  min-height: 0;
+  height: 0;
+}
+
+/* ==================== 空状态 ==================== */
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 180rpx;
+}
+
+.state-icon {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+
+.state-emoji {
+  font-size: 80rpx;
+  line-height: 1;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.state-sub {
+  font-size: 24rpx;
+  color: #bbb;
+}
+
+/* ==================== 商品网格 ==================== */
+.product-grid {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8rpx;
+  box-sizing: border-box;
+}
+
+.product-card {
+  width: calc(50% - 16rpx);
+  margin: 8rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.product-img {
+  width: 100%;
+  height: 340rpx;
+  background: #f8f8f8;
+  display: block;
+}
+
+.platform-tag {
+  position: absolute;
+  top: 12rpx;
+  left: 12rpx;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.platform-tag text {
+  font-size: 20rpx;
+  color: #fff;
+  padding: 4rpx 12rpx;
+  display: block;
+}
+
+.product-info {
+  padding: 16rpx;
+}
+
+.product-title {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 36rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-bottom: 12rpx;
+  min-height: 72rpx;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8rpx;
+}
+
+.price-left {
+  display: flex;
+  align-items: baseline;
+}
+
+.price-symbol {
+  font-size: 22rpx;
+  color: #ff5000;
+  font-weight: 600;
+}
+
+.price-value {
+  font-size: 34rpx;
+  color: #ff5000;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.coupon-tag {
+  font-size: 18rpx;
+  color: #fff;
+  background: #ff5000;
+  border-radius: 4rpx;
+  padding: 2rpx 8rpx;
+  margin-left: 8rpx;
+  line-height: 1.4;
+}
+
+.sales-text {
+  font-size: 20rpx;
+  color: #bbb;
+}
+
+.product-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.original-price {
+  font-size: 22rpx;
+  color: #bbb;
+  text-decoration: line-through;
+}
+
+.rebate-text {
+  font-size: 22rpx;
+  color: #ff5000;
+  font-weight: 500;
+  background: rgba(255, 80, 0, 0.08);
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+}
+
+/* ==================== 加载状态 ==================== */
+.loading-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx 0;
+  gap: 12rpx;
+}
+
+.loading-spinner {
+  width: 32rpx;
+  height: 32rpx;
+  border: 3rpx solid #e0e0e0;
+  border-top-color: #ff5000;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.no-more {
+  color: #ccc;
+}
