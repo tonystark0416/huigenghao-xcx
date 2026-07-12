@@ -1,5 +1,5 @@
 <!--index.wxml-->
-<navigation-bar title="boboshop" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar title="惠更好" back="{{false}}" color="black" background="#FFF"></navigation-bar>
 
 <view class="page">
   <!-- 顶部搜索栏 -->

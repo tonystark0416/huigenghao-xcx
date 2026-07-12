@@ -1,7 +1,7 @@
-# boboshop 需求文档
+# 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.1  
-> 最后更新：2026-06-21
+> 多平台 CPS 返利小程序 | 版本 v0.3.0  
+> 最后更新：2026-07-13
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### 1.1 产品定位
 
-boboshop 是一款集成多家主流电商平台 CPS 联盟的微信小程序，用户可通过本小程序搜索商品、获取优惠券、完成购买后获得返利。
+惠更好 (huigenghao) 是一款集成多家主流电商平台 CPS 联盟的微信小程序，用户可通过本小程序搜索商品、获取优惠券、完成购买后获得返利。
 
 ### 1.2 集成的电商平台
 
@@ -36,7 +36,7 @@ boboshop 是一款集成多家主流电商平台 CPS 联盟的微信小程序，
 ### 1.3 核心用户流程
 
 ```
-进入首页 → 搜索商品 → 浏览商品列表 → 查看详情 → 复制口令/领券 → 跳转购买 → 获得返利
+进入首页 → 静默登录(wx.login获取code→换openid→loginByOpenid) → 搜索商品 → 浏览商品列表 → 查看详情 → 复制口令/领券 → 跳转购买 → 获得返利
 ```
 
 ---
@@ -86,10 +86,10 @@ boboshop/
 **状态**：✅ 已完成基础版本
 
 **功能描述**：
-- 用户头像选择 / 微信快捷获取
-- 用户昵称输入
-- 跳转到商品搜索页的入口按钮
-- 跳转到启动日志页（调试用）
+- 进入首页自动触发登录流程：`wx.login` → 用 code 换 openid → `loginByOpenid` 完成登录
+- 登录成功后将 token、userInfo 等存于 `globalData` 和本地 Storage
+- 搜索入口：点击模拟搜索框跳转至商品搜索页
+- 导航栏标题「惠更好」，无返回按钮
 
 **待优化**：
 - [ ] 首页整体重新设计为电商风格（热门推荐、平台快捷入口等）
@@ -318,12 +318,36 @@ boboshop/
 
 **Mock 说明**：当前 `utils/api.js` 中的 `searchProducts` 函数模拟了上述接口行为（300-800ms 延迟）。后续对接真实接口，只需修改该函数的内部实现，页面代码无需改动。
 
-### 4.3 后续待定接口
+### 4.3 用户登录接口 ✅
+
+**登录流程**（两步走）：
+
+| 步骤 | 接口 | 方法 | 参数 | 说明 |
+|------|------|------|------|------|
+| ① 获取 openid | `/api/user/getOpenid` | POST | `{ code }` | 用 wx.login 的临时 code 换取 openid（后端调用微信 jscode2session） |
+| ② 登录 | `/api/user/loginByOpenid` | POST | `{ openid }` | 用 openid 执行登录，返回 token 和 userInfo |
+
+**② loginByOpenid 期望响应**：
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "xxx",
+    "userInfo": { "nickname": "xxx", "avatar": "xxx" }
+  }
+}
+```
+
+**前端实现**：`app.js` 的 `onLaunch` 中自动执行完整流程。登录结果存入：
+- `globalData.openid` / `globalData.token` / `globalData.userInfo` / `globalData.isLogin`
+- 本地 Storage：`openid` / `token` / `userInfo`
+
+### 4.4 后续待定接口
 
 | 接口 | 路径 | 说明 | 状态 |
 |------|------|------|------|
 | 领券/转链 | `POST /api/goods/link` | 生成推广链接/口令 | 🔜 |
-| 用户登录 | `POST /api/user/login` | 微信登录换取 token | 🚧 预留 |
 | 用户信息 | `GET /api/user/info` | 获取用户信息和返利汇总 | 🔜 |
 | 订单列表 | `GET /api/orders` | 查询订单与返利记录 | 🔜 |
 | 提现 | `POST /api/withdraw` | 申请提现 | 🔜 |
@@ -469,7 +493,7 @@ boboshop/
 
 | 任务 | 说明 | 状态 |
 |------|------|------|
-| 微信登录 | 静默登录 + Token 管理 | 🔜 |
+| 微信登录 | 静默登录 + Token 管理 | ✅ |
 | 个人中心 | 用户信息、收益展示 | 🔜 |
 | 订单列表 | 订单与返利状态查询 | 🔜 |
 | 提现功能 | 提现申请与记录 | 🔜 |
@@ -489,6 +513,7 @@ boboshop/
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-07-13 | v0.3.0 | 实现登录功能：app.js onLaunch 中自动执行 wx.login→换openid→loginByOpenid 流程，新增 api.loginByOpenid()，登录态写入 globalData/Storage，api.js 新增 postRequest；首页标题改为「惠更好」 | - |
 | 2026-06-21 | v0.2.1 | 搜索体验优化：进入页面即展示历史，改为手动搜索（输入不自动搜）；修复详情页参数传递 | - |
 | 2026-06-21 | v0.2.0 | 新增商品详情页 pages/goods/，对接 GET /api/goods，搜索列表点击跳转详情 | - |
 | 2026-06-21 | v0.1.4 | 首页改版：去掉默认模板，顶部放搜索框，其余留白；搜索页加返回按钮 | - |

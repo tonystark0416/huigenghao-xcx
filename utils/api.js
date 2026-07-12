@@ -109,6 +109,31 @@ function request(url) {
   });
 }
 
+/**
+ * 发起 POST 请求
+ */
+function postRequest(url, data) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url,
+      method: 'POST',
+      data,
+      header: { 'Content-Type': 'application/json' },
+      timeout: 5000,
+      success: (res) => {
+        if (res.statusCode === 200) {
+          resolve(res.data);
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}`));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      },
+    });
+  });
+}
+
 // ==================== Mock 数据 ====================
 
 const MOCK_IMAGES = [
@@ -333,9 +358,32 @@ async function getProductDetail(goodsId) {
   }
 }
 
+// ==================== 用户登录 ====================
+
+/**
+ * 通过 openid 登录
+ * POST http://localhost:3000/api/user/loginByOpenid
+ * @param {string} openid - 用户 openid
+ * @returns {Promise<Object>}
+ */
+async function loginByOpenid(openid) {
+  if (!openid) {
+    return { success: false, message: '缺少 openid' };
+  }
+
+  try {
+    const result = await postRequest(`${BASE_URL}/api/user/loginByOpenid`, { openid });
+    return result;
+  } catch (err) {
+    console.error('[API] 登录请求失败:', err.message);
+    return { success: false, message: err.message };
+  }
+}
+
 module.exports = {
   searchProducts,
   getProductDetail,
+  loginByOpenid,
   setUserConfig,
   PLATFORM_NAMES,
 };
