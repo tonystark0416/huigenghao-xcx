@@ -10,9 +10,81 @@
     </view>
   </view>
 
-  <!-- 主内容区（预留） -->
-  <view class="main-content">
-    <text class="empty-tip">更多内容敬请期待</text>
+  <!-- 粘贴购物链接 -->
+  <view class="link-section">
+    <view class="link-input-wrap">
+      <textarea
+        class="link-textarea"
+        placeholder="粘贴电商购物链接，查找优惠券"
+        placeholder-class="link-placeholder"
+        value="{{linkInput}}"
+        bindinput="onLinkInput"
+        maxlength="-1"
+      />
+      <view class="link-paste-btn" bindtap="onPasteLink">粘贴</view>
+    </view>
+    <view class="link-find-btn" bindtap="onFindCoupon">查找优惠</view>
+  </view>
+
+  <!-- 电商平台入口 -->
+  <view class="platform-section">
+    <view class="section-title">电商购物</view>
+    <view class="platform-grid">
+      <view
+        class="platform-item"
+        wx:for="{{platforms}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onPlatformTap"
+      >
+        <view class="platform-icon" style="background: {{item.color}};">
+          <text class="platform-icon-text">{{item.icon}}</text>
+        </view>
+        <text class="platform-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 瀑布流商品列表 -->
+  <view class="goods-section">
+    <view class="section-title">精选好物</view>
+
+    <!-- 加载中 -->
+    <view class="goods-status" wx:if="{{goodsLoading && productList.length === 0}}">
+      <text>正在加载商品...</text>
+    </view>
+
+    <!-- 空数据 -->
+    <view class="goods-status" wx:if="{{!goodsLoading && productList.length === 0}}">
+      <text>暂无商品数据</text>
+    </view>
+
+    <view class="waterfall-grid" wx:if="{{productList.length > 0}}">
+      <view
+        class="goods-card"
+        wx:for="{{productList}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onGoodsTap"
+      >
+        <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
+        <view class="goods-info">
+          <text class="goods-title">{{item.title}}</text>
+          <view class="goods-price-row">
+            <text class="goods-price">{{item.priceText}}</text>
+            <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
+          </view>
+          <text class="goods-rebate" wx:if="{{item.rebateText}}">{{item.rebateText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="goods-loading" wx:if="{{goodsLoading && productList.length > 0}}">
+      <text>加载中...</text>
+    </view>
+    <view class="goods-end" wx:if="{{!goodsHasMore && productList.length > 0}}">
+      <text>— 已经到底了 —</text>
+    </view>
   </view>
 </view>
 

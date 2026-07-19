@@ -37,6 +37,13 @@ Component({
   },
 
   methods: {
+    // 接收页面参数（如来自首页平台入口的 platform）
+    onLoad(options) {
+      if (options && options.platform) {
+        this.setData({ platform: options.platform });
+      }
+    },
+
     // ==================== 搜索历史 ====================
 
     loadHistory() {

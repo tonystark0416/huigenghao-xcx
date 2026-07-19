@@ -1,15 +1,33 @@
 // index.js
+const { getGoodsList } = require('../../utils/api');
+
 Component({
   data: {
     showLoginModal: false,
+    linkInput: '',
+    // 商品列表
+    productList: [],
+    goodsOffset: 0,
+    goodsPageSize: 10,
+    goodsHasMore: true,
+    goodsLoading: false,
+    platforms: [
+      { name: '唯品会', key: 'vip', color: '#E4007F', icon: '唯' },
+      { name: '淘宝', key: 'taobao', color: '#ff5000', icon: '淘' },
+      { name: '京东', key: 'jd', color: '#c91623', icon: '京' },
+      { name: '抖音商城', key: 'douyin', color: '#000000', icon: '抖' },
+      { name: '拼多多', key: 'pdd', color: '#e02e24', icon: '拼' },
+    ],
   },
 
   lifetimes: {
     attached() {
-      // 延迟检查，等待 app.js 的 doLogin 执行完毕
+      // 延迟检查登录弹窗
       setTimeout(() => {
         this.checkLoginModal();
       }, 1000);
+      // 加载首页商品列表
+      this.loadGoodsList();
     },
   },
 
@@ -110,7 +128,7 @@ Component({
           method: 'GET',
           timeout: 5000,
           success: (res) => {
-            console.log('[Login] /api/weixin/getPhone 响应:', JSON.stringify(res.data));
+            console.log('[Login] /api/weixin/getPhone 响应:', res.data);
             if (res.statusCode === 200 && res.data.errcode === 0) {
               const phone = res.data.phone_info && res.data.phone_info.purePhoneNumber;
               if (phone) {
@@ -158,9 +176,168 @@ Component({
       });
     },
 
+    /**
+     * 粘贴购物链接输入
+     */
+    onLinkInput(e) {
+      this.setData({ linkInput: e.detail.value });
+    },
+
+    /**
+     * 从剪贴板粘贴
+     */
+    onPasteLink() {
+      wx.getClipboardData({
+        success: (res) => {
+          this.setData({ linkInput: res.data || '' });
+        },
+        fail: () => {
+          wx.showToast({ title: '请手动粘贴链接', icon: 'none' });
+        },
+      });
+    },
+
+    /**
+     * 查找优惠
+     */
+    onFindCoupon() {
+      const { linkInput } = this.data;
+      if (!linkInput.trim()) {
+        wx.showToast({ title: '请先粘贴购物链接', icon: 'none' });
+        return;
+      }
+      // 预留：跳转到优惠查询页或发送给后端解析
+      wx.showToast({ title: '功能开发中', icon: 'none' });
+    },
+
+    /**
+     * 页面触底加载更多
+     */
+    onReachBottom() {
+      this.loadMoreGoods();
+    },
+
+    // ==================== 商品列表 ====================
+
+    /**
+     * 加载商品列表（首页）
+     */
+    async loadGoodsList() {
+      if (this.data.goodsLoading) return;
+      this.setData({ goodsLoading: true });
+
+      try {
+        const res = await getGoodsList({
+          jxCode: '4fepozbz',
+          offset: 0,
+          pageSize: this.data.goodsPageSize,
+        });
+
+        console.log('[Index] getGoodsList 原始响应:', res);
+
+        if (res && res.returnCode === '0' && res.result) {
+          const list = res.result.goodsInfoList || [];
+          console.log('[Index] 提取到商品列表，数量:', list.length);
+          this.setData({
+            productList: this.formatGoodsList(list),
+            goodsOffset: res.result.nextPageOffset || 0,
+            goodsHasMore: !res.result.lastPage,
+            goodsLoading: false,
+          });
+        } else {
+          console.warn('[Index] getGoodsList 返回无效');
+          this.setData({ goodsLoading: false });
+        }
+      } catch (err) {
+        console.error('[Index] 加载商品列表失败:', err);
+        this.setData({ goodsLoading: false });
+      }
+    },
+
+    /**
+     * 加载更多商品
+     */
+    async loadMoreGoods() {
+      const { goodsLoading, goodsHasMore, goodsOffset, goodsPageSize, productList } = this.data;
+      if (goodsLoading || !goodsHasMore) return;
+
+      console.log('[Index] loadMoreGoods offset:', goodsOffset);
+      this.setData({ goodsLoading: true });
+
+      try {
+        const res = await getGoodsList({
+          jxCode: '4fepozbz',
+          offset: goodsOffset,
+          pageSize: goodsPageSize,
+        });
+
+        console.log('[Index] loadMoreGoods 响应:', res);
+
+        if (res && res.returnCode === '0' && res.result) {
+          const list = res.result.goodsInfoList || [];
+          this.setData({
+            productList: [...productList, ...this.formatGoodsList(list)],
+            goodsOffset: res.result.nextPageOffset || goodsOffset,
+            goodsHasMore: !res.result.lastPage,
+            goodsLoading: false,
+          });
+        } else {
+          this.setData({ goodsLoading: false });
+        }
+      } catch (err) {
+        console.error('[Index] 加载更多失败:', err);
+        this.setData({ goodsLoading: false });
+      }
+    },
+
+    /**
+     * 格式化商品列表：映射唯品会接口字段
+     */
+    formatGoodsList(list) {
+      if (!Array.isArray(list)) return [];
+      return list.map(item => {
+        const price = parseFloat(item.vipPrice || item.price) || 0;
+        const originalPrice = parseFloat(item.marketPrice || item.originalPrice) || 0;
+        const commission = parseFloat(item.commission) || 0;
+        return {
+          id: item.goodsId || item.id || '',
+          title: item.goodsName || item.title || '',
+          image: item.goodsMainPicture || item.goodsThumbUrl || item.image || '',
+          price: price,
+          priceText: '¥' + price.toFixed(2),
+          originalPrice: originalPrice,
+          originalPriceText: originalPrice > price ? '¥' + originalPrice.toFixed(2) : '',
+          rebate: commission,
+          rebateText: commission > 0 ? '返¥' + commission.toFixed(2) : '',
+        };
+      });
+    },
+
+    /**
+     * 点击商品
+     */
+    onGoodsTap(e) {
+      const { id } = e.currentTarget.dataset;
+      if (id) {
+        wx.navigateTo({ url: `/pages/goods/goods?id=${id}` });
+      }
+    },
+
+    // ==================== 其他 ====================
+
     goToSearch() {
       wx.navigateTo({
         url: '/pages/search/search',
+      });
+    },
+
+    /**
+     * 点击平台入口，跳转到搜索页并带上平台参数
+     */
+    onPlatformTap(e) {
+      const { key } = e.currentTarget.dataset;
+      wx.navigateTo({
+        url: `/pages/search/search?platform=${key}`,
       });
     },
   },

@@ -381,9 +381,33 @@ async function loginByOpenid(openid) {
   }
 }
 
+// ==================== 首页商品列表 ====================
+
+/**
+ * 获取首页商品列表（唯品会）
+ * GET /api/vip/goodsList
+ * @param {Object} params
+ * @param {string} params.jxCode   - 精选 code
+ * @param {number} params.offset   - 偏移量
+ * @param {number} params.pageSize - 每页数量
+ */
+async function getGoodsList({ jxCode = '4vojhsp2', offset = 0, pageSize = 10 } = {}) {
+  try {
+    const query = `jxCode=${jxCode}&offset=${offset}&pageSize=${pageSize}`;
+    console.log('[API] getGoodsList 请求URL:', `${BASE_URL}/api/vip/goodsList?${query}`);
+    const result = await request(`${BASE_URL}/api/vip/goodsList?${query}`);
+    console.log('[API] getGoodsList 响应:', result);
+    return result;
+  } catch (err) {
+    console.error('[API] getGoodsList 失败:', err.message);
+    return null;
+  }
+}
+
 module.exports = {
   searchProducts,
   getProductDetail,
+  getGoodsList,
   loginByOpenid,
   setUserConfig,
   PLATFORM_NAMES,

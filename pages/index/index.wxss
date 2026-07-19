@@ -1,16 +1,7 @@
 /**index.wxss**/
 
 page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
   background: #f5f5f5;
-}
-
-.page {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
 }
 
 /* 顶部搜索栏 */
@@ -39,16 +30,192 @@ page {
   color: #bbb;
 }
 
-/* 主内容区 */
-.main-content {
+/* 粘贴购物链接 */
+.link-section {
+  background: #fff;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.link-input-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 240rpx;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 20rpx 20rpx 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.link-textarea {
   flex: 1;
+  width: 100%;
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.6;
+}
+
+.link-placeholder {
+  color: #bbb;
+  font-size: 26rpx;
+}
+
+.link-paste-btn {
+  align-self: flex-end;
+  padding: 0 28rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  font-size: 24rpx;
+  color: #ff5000;
+  background: #fff;
+  border-radius: 12rpx;
+  margin-top: 12rpx;
+}
+
+.link-find-btn {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(135deg, #ff5000, #ff6b35);
+  border-radius: 40rpx;
+}
+
+/* 电商平台入口 */
+.platform-section {
+  background: #fff;
+  padding: 28rpx 24rpx 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24rpx;
+}
+
+.platform-grid {
+  display: flex;
+  justify-content: space-around;
+}
+
+.platform-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.platform-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 12rpx;
 }
 
-.empty-tip {
+.platform-icon-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1;
+}
+
+.platform-name {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 瀑布流商品列表 */
+.goods-section {
+  padding: 28rpx 24rpx 60rpx 24rpx;
+}
+
+.waterfall-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.goods-card {
+  width: calc(50% - 8rpx);
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.goods-image {
+  width: 100%;
+  display: block;
+}
+
+.goods-info {
+  padding: 16rpx 20rpx 20rpx;
+}
+
+.goods-title {
   font-size: 26rpx;
+  color: #333;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.4;
+  margin-bottom: 12rpx;
+}
+
+.goods-price-row {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 6rpx;
+}
+
+.goods-price {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #ff5000;
+}
+
+.goods-original-price {
+  font-size: 22rpx;
+  color: #bbb;
+  text-decoration: line-through;
+  margin-left: 8rpx;
+}
+
+.goods-rebate {
+  font-size: 22rpx;
+  color: #ff5000;
+  background: rgba(255, 80, 0, 0.08);
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+}
+
+.goods-status {
+  text-align: center;
+  padding: 60rpx 0;
+  font-size: 26rpx;
+  color: #bbb;
+}
+
+.goods-loading {
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 24rpx;
+  color: #bbb;
+}
+
+.goods-end {
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 24rpx;
   color: #ccc;
 }
 
