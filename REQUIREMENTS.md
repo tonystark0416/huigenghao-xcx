@@ -1,7 +1,7 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.3.0  
-> 最后更新：2026-07-13
+> 多平台 CPS 返利小程序 | 版本 v0.4.0  
+> 最后更新：2026-07-19
 
 ---
 
@@ -36,7 +36,7 @@
 ### 1.3 核心用户流程
 
 ```
-进入首页 → 静默登录(wx.login获取code→换openid→loginByOpenid) → 搜索商品 → 浏览商品列表 → 查看详情 → 复制口令/领券 → 跳转购买 → 获得返利
+进入首页 → 静默登录(wx.login→/api/weixin/openid换openid→loginByOpenid) → 搜索商品 → 浏览商品列表 → 查看详情 → 复制口令/领券 → 跳转购买 → 获得返利
 ```
 
 ---
@@ -86,10 +86,22 @@ boboshop/
 **状态**：✅ 已完成基础版本
 
 **功能描述**：
-- 进入首页自动触发登录流程：`wx.login` → 用 code 换 openid → `loginByOpenid` 完成登录
-- 登录成功后将 token、userInfo 等存于 `globalData` 和本地 Storage
+- 进入首页自动执行完整登录流程，每一步数据都持久化到本地
+
+**登录流程**：
+
+| 步骤 | 操作 | 接口 | 本地存储 Key | globalData 字段 |
+|------|------|------|-------------|-----------------|
+| ① | `wx.login` 获取临时 code | - | `code` | `code` |
+| ② | 用 code 换取 openid | `POST /api/weixin/openid` | `code`, `openid`, `session_key` | `code`, `openid`, `session_key` |
+| ③ | openid 登录获取 token | `POST /api/user/loginByOpenid` | `token`, `userInfo` | `token`, `userInfo`, `isLogin` |
+
 - 搜索入口：点击模拟搜索框跳转至商品搜索页
 - 导航栏标题「惠更好」，无返回按钮
+- **登录失败处理**：如果 `loginByOpenid` 返回失败（新用户未注册），首页弹出登录窗口，引导用户通过微信手机号授权完成注册/登录
+  - 弹窗包含「微信手机号快捷登录」按钮（`open-type="getPhoneNumber"`）
+  - 获取手机号 code 后，调用 `POST /api/user/loginByPhone` 注册/登录
+  - 支持「暂不登录」跳过
 
 **待优化**：
 - [ ] 首页整体重新设计为电商风格（热门推荐、平台快捷入口等）
@@ -320,28 +332,43 @@ boboshop/
 
 ### 4.3 用户登录接口 ✅
 
-**登录流程**（两步走）：
+**完整登录流程**（`app.js` onLaunch 自动执行）：
 
-| 步骤 | 接口 | 方法 | 参数 | 说明 |
-|------|------|------|------|------|
-| ① 获取 openid | `/api/user/getOpenid` | POST | `{ code }` | 用 wx.login 的临时 code 换取 openid（后端调用微信 jscode2session） |
-| ② 登录 | `/api/user/loginByOpenid` | POST | `{ openid }` | 用 openid 执行登录，返回 token 和 userInfo |
-
-**② loginByOpenid 期望响应**：
-
-```json
-{
-  "success": true,
-  "data": {
-    "token": "xxx",
-    "userInfo": { "nickname": "xxx", "avatar": "xxx" }
-  }
-}
+```
+wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_key
+         → POST /api/user/loginByOpenid
+                → 成功? → 保存 token, userId, userInfo → 完成
+                → 失败? → 弹出手机号登录窗口
+                        → 用户授权手机号(getPhoneNumber)
+                        → GET /api/weixin/getPhone → 获取 purePhoneNumber
+                        → POST /api/user/register → 保存 token, userId, userInfo → 完成
 ```
 
-**前端实现**：`app.js` 的 `onLaunch` 中自动执行完整流程。登录结果存入：
-- `globalData.openid` / `globalData.token` / `globalData.userInfo` / `globalData.isLogin`
-- 本地 Storage：`openid` / `token` / `userInfo`
+**接口详情**：
+
+| 步骤 | 接口 | 方法 | 参数 | 响应格式 |
+|------|------|------|------|----------|
+| ① | `/api/weixin/openid` | GET | `?code=xxx` | `{ openid, session_key }` |
+| ② | `/api/user/loginByOpenid` | POST | `{ openid }` | `{ result: true, data: { user: { id, phone, nickname, avatar }, token } }` |
+| ③ | `/api/weixin/getPhone` | GET | `?code=xxx` | `{ errcode: 0, phone_info: { purePhoneNumber } }` |
+| ④ | `/api/user/register` | POST | `{ openid, phone }` | `{ result: true, data: { user: { id, phone, nickname, avatar }, token } }` |
+
+> 步骤 ② 失败（新用户未注册）时，前端弹窗引导用户授权手机号，依次走步骤 ③④ 完成注册。
+> 成功判断兼容 `result` / `success` / `code === 0` 三种格式。
+> userId 提取兼容 `data.user.id` / `data.userId` / `data.id`。
+
+**登录态存储清单**：
+
+| 存储 Key | 来源 | 存储位置 |
+|----------|------|----------|
+| `code` | wx.login 返回值 | Storage + globalData.code |
+| `openid` | /api/weixin/openid 返回值 | Storage + globalData.openid + api.setUserConfig |
+| `session_key` | /api/weixin/openid 返回值 | Storage + globalData.session_key |
+| `token` | loginByOpenid / register 返回值 | Storage + globalData.token |
+| `userId` | loginByOpenid / register 返回 `data.user.id` | Storage + globalData.userId |
+| `userInfo` | loginByOpenid / register 返回 `data.user` | Storage + globalData.userInfo |
+
+> 每步获取的数据都同时写入 `wx.Storage`（持久化）和 `globalData`（内存），确保数据不丢失。
 
 ### 4.4 后续待定接口
 
@@ -411,7 +438,18 @@ boboshop/
 | `pdd` | 拼多多 | `#e02e24` | - |
 | `douyin` | 抖音 | `#000000` | 抖音电商 |
 
-### 5.3 搜索历史存储
+### 5.3 登录态存储
+
+| Key | 类型 | 说明 |
+|-----|------|------|
+| `code` | string | wx.login 返回的临时 code |
+| `openid` | string | 用户的微信 openid |
+| `session_key` | string | 微信会话密钥 |
+| `token` | string | 登录凭证 JWT token |
+| `userId` | number | 用户 ID（来自 `data.user.id`） |
+| `userInfo` | object | 用户信息 `{ id, phone, nickname, avatar }` |
+
+### 5.4 搜索历史存储
 
 - **Key**：`search_history`
 - **存储**：`wx.setStorageSync` / `wx.getStorageSync`
@@ -513,6 +551,9 @@ boboshop/
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-07-19 | v0.4.0 | 完整登录注册链路调通：对接真实接口格式 `{ result, data: { user: { id }, token } }`，兼容多种返回格式(result/success/code)，userId提取自 data.user.id，五步流程(wx.login→openid→loginByOpenid→getPhone→register)全部跑通 | - |
+| 2026-07-19 | v0.3.2 | 新增手机号登录：loginByOpenid 失败时首页弹出登录窗口，支持微信手机号授权(getPhoneNumber)，先 GET `/api/weixin/getPhone` 获取真实手机号，再 POST `/api/user/register` 完成注册 | - |
+| 2026-07-19 | v0.3.1 | 对接 code换openid 接口 `/api/weixin/openid`，完整登录链路：wx.login→保存code→换openid→保存openid→loginByOpenid→保存token/userInfo，所有登录态数据持久化到本地 Storage | - |
 | 2026-07-13 | v0.3.0 | 实现登录功能：app.js onLaunch 中自动执行 wx.login→换openid→loginByOpenid 流程，新增 api.loginByOpenid()，登录态写入 globalData/Storage，api.js 新增 postRequest；首页标题改为「惠更好」 | - |
 | 2026-06-21 | v0.2.1 | 搜索体验优化：进入页面即展示历史，改为手动搜索（输入不自动搜）；修复详情页参数传递 | - |
 | 2026-06-21 | v0.2.0 | 新增商品详情页 pages/goods/，对接 GET /api/goods，搜索列表点击跳转详情 | - |

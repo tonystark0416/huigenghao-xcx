@@ -373,6 +373,7 @@ async function loginByOpenid(openid) {
 
   try {
     const result = await postRequest(`${BASE_URL}/api/user/loginByOpenid`, { openid });
+    console.log('[API] loginByOpenid 响应:', JSON.stringify(result));
     return result;
   } catch (err) {
     console.error('[API] 登录请求失败:', err.message);

@@ -16,7 +16,7 @@ App({
    * 登录流程：
    * 1. wx.login 获取临时 code
    * 2. 用 code 换取 openid
-   * 3. 调用 loginByOpenid 尝试登录
+   * 3. 调用 loginByOpenid 完成登录
    */
   async doLogin() {
     try {
@@ -33,36 +33,51 @@ App({
         return;
       }
 
+      // 保存 code 到全局和本地
+      this.globalData.code = loginRes.code;
+      wx.setStorageSync('code', loginRes.code);
+
       // Step 2: 用 code 换取 openid
-      const openid = await this.getOpenidByCode(loginRes.code);
-      if (!openid) {
+      const result = await this.getOpenidByCode(loginRes.code);
+      if (!result || !result.openid) {
         console.warn('[Login] 获取 openid 失败');
         return;
       }
 
-      // 保存 openid 到本地
+      const openid = result.openid;
+
+      // 保存 openid 和 session_key
       wx.setStorageSync('openid', openid);
+      wx.setStorageSync('session_key', result.session_key || '');
       this.globalData.openid = openid;
-
-      // 更新 API 层的用户配置
+      this.globalData.session_key = result.session_key || '';
       api.setUserConfig({ openid });
+      console.log('[Login] openid 已获取');
 
-      // Step 3: 调用 loginByOpenid 尝试登录
+      // Step 3: 调用 loginByOpenid 完成登录
       const loginResult = await api.loginByOpenid(openid);
 
-      if (loginResult && loginResult.success) {
+      // 兼容多种成功格式: result / success / code===0
+      const isSuccess = loginResult
+        && (loginResult.result || loginResult.success || loginResult.code === 0);
+
+      if (isSuccess) {
         const data = loginResult.data || {};
+        const user = data.user || {};
         this.globalData.token = data.token || '';
-        this.globalData.userInfo = data.userInfo || null;
+        this.globalData.userId = user.id || data.userId || data.id || '';
+        this.globalData.userInfo = (user.nickname || user.avatar) ? user : (data.userInfo || null);
         this.globalData.isLogin = true;
 
-        // 持久化存储
         wx.setStorageSync('token', this.globalData.token);
+        wx.setStorageSync('userId', this.globalData.userId);
         wx.setStorageSync('userInfo', this.globalData.userInfo);
 
-        console.log('[Login] 登录成功');
+        console.log('[Login] 登录成功，userId:', this.globalData.userId);
       } else {
-        console.warn('[Login] loginByOpenid 返回失败:', loginResult && loginResult.message);
+        // 未注册，需要手机号登录
+        console.warn('[Login] loginByOpenid 返回失败，原始结果:', JSON.stringify(loginResult));
+        this.globalData.needPhoneLogin = true;
       }
     } catch (err) {
       console.error('[Login] 登录异常:', err);
@@ -71,27 +86,31 @@ App({
 
   /**
    * 用 wx.login 的 code 换取 openid
-   * 请求后端通过微信 jscode2session 接口获取
    */
   getOpenidByCode(code) {
     return new Promise((resolve, reject) => {
       wx.request({
-        url: 'http://localhost:3000/api/user/getOpenid',
-        method: 'POST',
-        data: { code },
-        header: { 'Content-Type': 'application/json' },
+        url: `http://localhost:3000/api/weixin/openid?code=${code}`,
+        method: 'GET',
         timeout: 5000,
         success: (res) => {
+          console.log('[Login] /api/weixin/openid 响应:', JSON.stringify(res.data));
           if (res.statusCode === 200) {
-            const openid = res.data.openid
-              || (res.data.data && res.data.data.openid)
-              || '';
-            resolve(openid);
+            const openid = res.data.openid || '';
+            const session_key = res.data.session_key || '';
+            if (openid) {
+              console.log('[Login] 提取到 openid:', openid);
+            } else {
+              console.warn('[Login] 未能从响应中提取 openid，原始数据:', res.data);
+            }
+            resolve({ openid, session_key });
           } else {
+            console.error('[Login] /api/weixin/openid HTTP错误:', res.statusCode);
             reject(new Error(`HTTP ${res.statusCode}`));
           }
         },
         fail: (err) => {
+          console.error('[Login] /api/weixin/openid 请求失败:', err);
           reject(err);
         },
       });
@@ -100,8 +119,12 @@ App({
 
   globalData: {
     userInfo: null,
+    userId: '',
+    code: '',
     openid: '',
+    session_key: '',
     token: '',
     isLogin: false,
+    needPhoneLogin: false,
   },
 });
