@@ -261,7 +261,7 @@ boboshop/
 
 ### 4.2 商品搜索接口
 
-**接口路径**：`GET http://localhost:3000/api/search`
+**接口路径**：`GET http://hgh.pangpai-car.com/api/search`
 
 **请求参数**（Query）：
 
@@ -402,7 +402,7 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 
 ### 4.4 商品详情接口 ✅
 
-**接口路径**：`GET http://localhost:3000/api/goods`
+**接口路径**：`GET http://hgh.pangpai-car.com/api/goods`
 
 **请求参数**（Query）：
 

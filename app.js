@@ -90,7 +90,7 @@ App({
   getOpenidByCode(code) {
     return new Promise((resolve, reject) => {
       wx.request({
-        url: `http://localhost:3000/api/weixin/openid?code=${code}`,
+        url: `https://hgh.pangpai-car.com/api/weixin/openid?code=${code}`,
         method: 'GET',
         timeout: 5000,
         success: (res) => {

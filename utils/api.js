@@ -3,7 +3,7 @@
  * 优先调用真实接口，失败/无数据时 fallback 到 mock
  */
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'https://hgh.pangpai-car.com';
 
 // 调试开关：true=仅mock false=优先真实接口
 const MOCK_ONLY = false;
@@ -202,7 +202,7 @@ function mockSearch({ keyword, platform, page, pageSize }) {
 /**
  * 搜索商品
  * 
- * 真实接口 (GET): http://localhost:3000/api/search
+ * 真实接口 (GET): http://hgh.pangpai-car.com/api/search
  * 请求参数 (query):
  *   - keyword  {string}  搜索关键词
  *   - uid      {string}  用户标识
@@ -320,7 +320,7 @@ function mockGoodsDetail(goodsId) {
 /**
  * 获取商品详情
  * 
- * 真实接口 (GET): http://localhost:3000/api/goods
+ * 真实接口 (GET): http://hgh.pangpai-car.com/api/goods
  * 请求参数 (query):
  *   - goodsId  {string}  商品ID
  *   - chanTag  {string}  渠道标签
@@ -362,7 +362,7 @@ async function getProductDetail(goodsId) {
 
 /**
  * 通过 openid 登录
- * POST http://localhost:3000/api/user/loginByOpenid
+ * POST http://hgh.pangpai-car.com/api/user/loginByOpenid
  * @param {string} openid - 用户 openid
  * @returns {Promise<Object>}
  */
