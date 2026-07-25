@@ -100,3 +100,14 @@
     <view class="login-skip" bindtap="closeLoginModal">暂不登录</view>
   </view>
 </view>
+
+<!-- 第三方授权提示弹窗 -->
+<view class="login-modal" wx:if="{{showAuthModal}}" catchtouchmove="noop">
+  <view class="login-mask" bindtap="closeAuthModal"></view>
+  <view class="login-dialog">
+    <view class="login-title">未授权</view>
+    <view class="login-desc">使用{{authPlatformName}}购物需要先授权，点击下方按钮完成授权</view>
+    <button class="login-phone-btn" bindtap="onGoAuth">去授权</button>
+    <view class="login-skip" bindtap="closeAuthModal">暂不授权</view>
+  </view>
+</view>

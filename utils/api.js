@@ -406,15 +406,28 @@ async function getGoodsList({ jxCode = '4vojhsp2', offset = 0, pageSize = 10 } =
 
 // ==================== 第三方授权 ====================
 
+const THIRD_PID = '43384525_317172887';
+
 /**
  * 校验第三方平台是否已授权
- * POST /api/thirdAuth/checkAuth
+ * GET /api/thirdAuth/checkAuth?uid=xxx&pid=xxx
+ * @param {string} uid - 用户标识
+ * @param {string} pid - 推广位ID，默认 gh_8ed2afad9972
  */
-async function checkAuth() {
+async function checkAuth(uid, platform, pid = THIRD_PID) {
   try {
-    const result = await postRequest(`${BASE_URL}/api/thirdAuth/checkAuth`, {});
-    console.log('[API] checkAuth 响应:', result);
-    return result;
+    const query = `uid=${uid || ''}&platform=${platform}&pid=${pid}`;
+    const fullRes = await new Promise((resolve, reject) => {
+      wx.request({
+        url: `${BASE_URL}/api/thirdAuth/checkAuth?${query}`,
+        method: 'GET',
+        timeout: 5000,
+        success: resolve,
+        fail: reject,
+      });
+    });
+    console.log('[API] checkAuth data:', fullRes.data);
+    return fullRes.data;
   } catch (err) {
     console.error('[API] checkAuth 失败:', err.message);
     return { isAuth: false };
@@ -423,12 +436,14 @@ async function checkAuth() {
 
 /**
  * 生成第三方平台授权链接
- * POST /api/thirdAuth/genAuthUrl
- * @param {string} pid - 推广位ID
+ * GET /api/thirdAuth/genAuthUrl?uid=xxx&pid=xxx
+ * @param {string} uid - 用户标识
+ * @param {string} pid - 推广位ID，默认 gh_8ed2afad9972
  */
-async function genAuthUrl(pid) {
+async function genAuthUrl(uid, platform, pid = THIRD_PID) {
   try {
-    const result = await postRequest(`${BASE_URL}/api/thirdAuth/genAuthUrl`, { pid });
+    const query = `uid=${uid || ''}&platform=${platform}&pid=${pid}`;
+    const result = await request(`${BASE_URL}/api/thirdAuth/genAuthUrl?${query}`);
     console.log('[API] genAuthUrl 响应:', result);
     return result;
   } catch (err) {

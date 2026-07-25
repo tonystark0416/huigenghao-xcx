@@ -4,6 +4,9 @@ const { getGoodsList, checkAuth, genAuthUrl } = require('../../utils/api');
 Component({
   data: {
     showLoginModal: false,
+    showAuthModal: false,
+    authPlatform: '',
+    authPlatformName: '',
     linkInput: '',
     // 商品列表
     productList: [],
@@ -53,6 +56,44 @@ Component({
      */
     closeLoginModal() {
       this.setData({ showLoginModal: false });
+    },
+
+    /**
+     * 关闭授权提示弹窗
+     */
+    closeAuthModal() {
+      this.setData({ showAuthModal: false });
+    },
+
+    /**
+     * 点击"去授权"按钮，获取授权链接并跳转
+     */
+    async onGoAuth() {
+      const { authPlatform } = this.data;
+      const config = authPlatform === 'vip'
+        ? { appId: 'wxe9714e742209d35f', name: '唯品会' }
+        : { appId: 'wxa918198f16869201', name: '拼多多' };
+
+      // 先关闭弹窗
+      this.setData({ showAuthModal: false });
+
+      try {
+        wx.showLoading({ title: '获取授权...', mask: true });
+        const uid = getApp().globalData.userId || getApp().globalData.openid || '';
+        const urlRes = await genAuthUrl(uid, authPlatform);
+        wx.hideLoading();
+
+        const weappUrl = urlRes && urlRes.authUrl && urlRes.authUrl.weapp_url;
+        if (weappUrl) {
+          this.navigateToMiniProgram(config.appId, weappUrl);
+        } else {
+          wx.showToast({ title: `获取${config.name}授权链接失败`, icon: 'none' });
+        }
+      } catch (err) {
+        wx.hideLoading();
+        console.error('[Index] 获取授权链接异常:', err);
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      }
     },
 
     /**
@@ -369,23 +410,21 @@ Component({
         wx.showLoading({ title: '加载中...', mask: true });
 
         // Step 1: 校验授权状态
-        const authRes = await checkAuth();
+        const uid = getApp().globalData.userId || getApp().globalData.openid || '';
+        const authRes = await checkAuth(uid, platform);
         wx.hideLoading();
 
-        if (authRes && authRes.isAuth) {
+        const isAuth = authRes && authRes.authStatus && authRes.authStatus.isAuth;
+        if (isAuth) {
           // 已授权，直接跳转
           this.navigateToMiniProgram(config.appId, config.path);
         } else {
-          // 未授权，获取授权链接
-          wx.showLoading({ title: '获取授权...', mask: true });
-          const urlRes = await genAuthUrl('43384525_317172887');
-          wx.hideLoading();
-
-          if (urlRes && urlRes.weapp_url) {
-            this.navigateToMiniProgram(config.appId, urlRes.weapp_url);
-          } else {
-            wx.showToast({ title: `获取${config.name}授权链接失败`, icon: 'none' });
-          }
+          // 未授权，弹出提示窗口
+          this.setData({
+            showAuthModal: true,
+            authPlatform: platform,
+            authPlatformName: config.name,
+          });
         }
       } catch (err) {
         wx.hideLoading();
