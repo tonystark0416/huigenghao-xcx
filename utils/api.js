@@ -404,11 +404,46 @@ async function getGoodsList({ jxCode = '4vojhsp2', offset = 0, pageSize = 10 } =
   }
 }
 
+// ==================== 第三方授权 ====================
+
+/**
+ * 校验第三方平台是否已授权
+ * POST /api/thirdAuth/checkAuth
+ */
+async function checkAuth() {
+  try {
+    const result = await postRequest(`${BASE_URL}/api/thirdAuth/checkAuth`, {});
+    console.log('[API] checkAuth 响应:', result);
+    return result;
+  } catch (err) {
+    console.error('[API] checkAuth 失败:', err.message);
+    return { isAuth: false };
+  }
+}
+
+/**
+ * 生成第三方平台授权链接
+ * POST /api/thirdAuth/genAuthUrl
+ * @param {string} pid - 推广位ID
+ */
+async function genAuthUrl(pid) {
+  try {
+    const result = await postRequest(`${BASE_URL}/api/thirdAuth/genAuthUrl`, { pid });
+    console.log('[API] genAuthUrl 响应:', result);
+    return result;
+  } catch (err) {
+    console.error('[API] genAuthUrl 失败:', err.message);
+    return null;
+  }
+}
+
 module.exports = {
   searchProducts,
   getProductDetail,
   getGoodsList,
   loginByOpenid,
+  checkAuth,
+  genAuthUrl,
   setUserConfig,
   PLATFORM_NAMES,
 };

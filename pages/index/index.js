@@ -1,5 +1,5 @@
 // index.js
-const { getGoodsList } = require('../../utils/api');
+const { getGoodsList, checkAuth, genAuthUrl } = require('../../utils/api');
 
 Component({
   data: {
@@ -332,12 +332,82 @@ Component({
     },
 
     /**
-     * 点击平台入口，跳转到搜索页并带上平台参数
+     * 点击平台入口
+     * 唯品会/拼多多：校验授权后跳转对应小程序
+     * 其他平台：跳转搜索页
      */
-    onPlatformTap(e) {
+    async onPlatformTap(e) {
       const { key } = e.currentTarget.dataset;
-      wx.navigateTo({
-        url: `/pages/search/search?platform=${key}`,
+
+      if (key === 'vip' || key === 'pdd') {
+        await this.jumpToThirdPlatform(key);
+      } else {
+        wx.navigateTo({
+          url: `/pages/search/search?platform=${key}`,
+        });
+      }
+    },
+
+    /**
+     * 跳转第三方平台小程序
+     * 先校验授权，已授权直接跳转，未授权去授权页
+     */
+    async jumpToThirdPlatform(platform) {
+      const config = platform === 'vip'
+        ? {
+            appId: 'wxe9714e742209d35f',
+            path: 'pages/index/index?$route=pages%2Findex%2Findex&tra_from=adp%3AC01V4n57m12uzug2%3A%3Amig_code%3A%3Aac014n57m100009u99ddch39t0efs013&chl_type=wxk',
+            name: '唯品会',
+          }
+        : {
+            appId: 'wxa918198f16869201',
+            path: '/pages/web/web?specialUrl=1&src=https%3A%2F%2Fmobile.yangkeduo.com%2Fduo_transfer_channel.html%3FresourceType%3D4%26pid%3D43384525_317172887%26customParameters%3D%257B%2522uid%2522%253A%2522123007%2522%257D%26cpsSign%3DCE_260726_43384525_317172887_d95427450c00dc9b9c082f9a3f2e9038%26_x_ddjb_act%3D%257B%2522st%2522%253A%25226%2522%257D%26duoduo_type%3D2',
+            name: '拼多多',
+          };
+
+      try {
+        wx.showLoading({ title: '加载中...', mask: true });
+
+        // Step 1: 校验授权状态
+        const authRes = await checkAuth();
+        wx.hideLoading();
+
+        if (authRes && authRes.isAuth) {
+          // 已授权，直接跳转
+          this.navigateToMiniProgram(config.appId, config.path);
+        } else {
+          // 未授权，获取授权链接
+          wx.showLoading({ title: '获取授权...', mask: true });
+          const urlRes = await genAuthUrl('43384525_317172887');
+          wx.hideLoading();
+
+          if (urlRes && urlRes.weapp_url) {
+            this.navigateToMiniProgram(config.appId, urlRes.weapp_url);
+          } else {
+            wx.showToast({ title: `获取${config.name}授权链接失败`, icon: 'none' });
+          }
+        }
+      } catch (err) {
+        wx.hideLoading();
+        console.error(`[Index] 跳转${config.name}失败:`, err);
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      }
+    },
+
+    /**
+     * 跳转第三方小程序
+     */
+    navigateToMiniProgram(appId, path) {
+      wx.navigateToMiniProgram({
+        appId,
+        path,
+        success: () => {
+          console.log('[Index] 跳转成功:', appId);
+        },
+        fail: (err) => {
+          console.error('[Index] 跳转失败:', err);
+          wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+        },
       });
     },
   },

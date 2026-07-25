@@ -1,7 +1,7 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.4.0  
-> 最后更新：2026-07-19
+> 多平台 CPS 返利小程序 | 版本 v0.5.0  
+> 最后更新：2026-07-26
 
 ---
 
@@ -102,6 +102,12 @@ boboshop/
   - 弹窗包含「微信手机号快捷登录」按钮（`open-type="getPhoneNumber"`）
   - 获取手机号 code 后，调用 `POST /api/user/loginByPhone` 注册/登录
   - 支持「暂不登录」跳过
+- **第三方平台跳转**：点击唯品会/拼多多 icon 自动校验授权状态，已授权直跳对应小程序首页，未授权先获取授权链接再跳转
+  - 唯品会 appId: `wxe9714e742209d35f`，原始ID: `gh_8ed2afad9972`
+  - 拼多多 appId: `wxa918198f16869201`，原始ID: `gh_a6611aee87d6`
+  - 授权校验：`POST /api/thirdAuth/checkAuth`
+  - 获取授权链接：`POST /api/thirdAuth/genAuthUrl`（pid: `43384525_317172887`）
+  - 淘宝/京东/抖音商城 icon 仍跳转搜索页
 
 **待优化**：
 - [ ] 首页整体重新设计为电商风格（热门推荐、平台快捷入口等）
@@ -370,7 +376,20 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 
 > 每步获取的数据都同时写入 `wx.Storage`（持久化）和 `globalData`（内存），确保数据不丢失。
 
-### 4.4 后续待定接口
+### 4.4 第三方平台授权接口 ✅
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/thirdAuth/checkAuth` | POST | 校验是否已授权，返回 `{ isAuth: true/false }` |
+| `/api/thirdAuth/genAuthUrl` | POST | 生成授权链接，参数 `{ pid }`，返回 `{ weapp_url }` |
+
+**跳转流程**：
+```
+点击唯品会/拼多多 icon → checkAuth → isAuth=true? → navigateToMiniProgram(购物首页)
+                                      → isAuth=false? → genAuthUrl(pid) → navigateToMiniProgram(授权页)
+```
+
+### 4.5 后续待定接口
 
 | 接口 | 路径 | 说明 | 状态 |
 |------|------|------|------|
@@ -551,6 +570,7 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-07-26 | v0.5.0 | 第三方平台跳转：点击唯品会/拼多多 icon 校验授权(checkAuth)，已授权直跳对应小程序，未授权获取链接(genAuthUrl)跳转授权；淘宝/京东/抖音仍跳搜索页 | - |
 | 2026-07-19 | v0.4.0 | 完整登录注册链路调通：对接真实接口格式 `{ result, data: { user: { id }, token } }`，兼容多种返回格式(result/success/code)，userId提取自 data.user.id，五步流程(wx.login→openid→loginByOpenid→getPhone→register)全部跑通 | - |
 | 2026-07-19 | v0.3.2 | 新增手机号登录：loginByOpenid 失败时首页弹出登录窗口，支持微信手机号授权(getPhoneNumber)，先 GET `/api/weixin/getPhone` 获取真实手机号，再 POST `/api/user/register` 完成注册 | - |
 | 2026-07-19 | v0.3.1 | 对接 code换openid 接口 `/api/weixin/openid`，完整登录链路：wx.login→保存code→换openid→保存openid→loginByOpenid→保存token/userInfo，所有登录态数据持久化到本地 Storage | - |
