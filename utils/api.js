@@ -452,6 +452,95 @@ async function genAuthUrl(uid, platform, pid = THIRD_PID) {
   }
 }
 
+// ==================== 链接转换 ====================
+
+const TRAN_URL_PID = '43384525_317172887';
+
+/**
+ * 识别链接所属平台
+ * @param {string} url - 原始链接
+ * @returns {string} 平台标识
+ */
+function detectPlatform(url) {
+  if (!url) return '';
+  const u = url.toLowerCase();
+  if (u.includes('yangkeduo.com') || u.includes('pinduoduo.com')) return 'pdd';
+  if (u.includes('taobao.com') || u.includes('tmall.com')) return 'taobao';
+  if (u.includes('jd.com')) return 'jd';
+  if (u.includes('vip.com')) return 'vip';
+  return '';
+}
+
+/**
+ * 链接转换：将拼多多商品链接转为 CPS 推广链接
+ *
+ * 接口: GET https://hgh.pangpai-car.com/api/tranUrl
+ * 参数:
+ *   - uid        {string} 当前用户 uid
+ *   - pid        {string} 推广位ID，固定 43384525_317172887
+ *   - platform   {string} 平台标识，pdd
+ *   - source_url {string} 用户输入的原始链接
+ *
+ * 返回格式: { result: true, h5_url: "..." }
+ *
+ * @param {string} url - 原始电商链接
+ */
+async function convertLink(url, uid) {
+  // 校验链接
+  if (!url || !url.trim()) {
+    return { code: -1, message: '请输入商品链接' };
+  }
+
+  // 校验 uid
+  if (!uid) {
+    return { code: -1, message: '请先登录' };
+  }
+
+  const platform = detectPlatform(url);
+
+  // 目前仅支持拼多多
+  if (platform !== 'pdd') {
+    return {
+      code: -2,
+      message: platform
+        ? `暂不支持${PLATFORM_NAMES[platform] || '该平台'}链接，当前仅支持拼多多`
+        : '无法识别该链接平台，请确认链接有效',
+    };
+  }
+
+  try {
+    const query = [
+      `uid=${encodeURIComponent(uid)}`,
+      `pid=${encodeURIComponent(TRAN_URL_PID)}`,
+      `platform=pdd`,
+      `source_url=${encodeURIComponent(url.trim())}`,
+    ].join('&');
+
+    const fullUrl = `${BASE_URL}/api/tranUrl?${query}`;
+    console.log('[API] convertLink 请求:', fullUrl);
+
+    const result = await request(fullUrl);
+    console.log('[API] convertLink 响应:', result);
+
+    if (result && result.result === true && result.h5_url) {
+      return {
+        code: 0,
+        data: {
+          originalUrl: url.trim(),
+          convertedUrl: result.h5_url,
+          platform: 'pdd',
+          platformName: '拼多多',
+        },
+      };
+    }
+
+    return { code: -3, message: '链接转换失败，请检查链接是否有效' };
+  } catch (err) {
+    console.warn('[API] convertLink 失败:', err.message);
+    return { code: -3, message: '网络异常，请重试' };
+  }
+}
+
 module.exports = {
   searchProducts,
   getProductDetail,
@@ -459,6 +548,8 @@ module.exports = {
   loginByOpenid,
   checkAuth,
   genAuthUrl,
+  convertLink,
+  detectPlatform,
   setUserConfig,
   PLATFORM_NAMES,
 };

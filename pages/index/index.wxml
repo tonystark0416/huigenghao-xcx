@@ -23,7 +23,29 @@
       />
       <view class="link-paste-btn" bindtap="onPasteLink">粘贴</view>
     </view>
-    <view class="link-find-btn" bindtap="onFindCoupon">查找优惠</view>
+    <view class="link-find-btn {{linkConverting ? 'btn-disabled' : ''}}" bindtap="onFindCoupon">
+      {{linkConverting ? '正在转换...' : '查找优惠'}}
+    </view>
+  </view>
+
+  <!-- 链接转换结果卡片 -->
+  <view class="link-result-card" wx:if="{{showLinkResult && linkResult}}">
+    <view class="result-header">
+      <text class="result-platform-badge">{{linkResult.platformName}}</text>
+      <view class="result-close" bindtap="onClearLinkResult">✕</view>
+    </view>
+    <view class="result-body">
+      <view class="result-section">
+        <text class="result-label">原始链接</text>
+        <text class="result-url-text">{{linkResult.originalUrl}}</text>
+      </view>
+      <view class="result-divider"></view>
+      <view class="result-section">
+        <text class="result-label">转换链接</text>
+        <text class="result-url-text result-url-highlight">{{linkResult.convertedUrl}}</text>
+      </view>
+    </view>
+    <button class="result-copy-btn" bindtap="onCopyLink">一键复制链接</button>
   </view>
 
   <!-- 电商平台入口 -->

@@ -1,5 +1,5 @@
 // index.js
-const { getGoodsList, checkAuth, genAuthUrl } = require('../../utils/api');
+const { getGoodsList, checkAuth, genAuthUrl, convertLink } = require('../../utils/api');
 
 Component({
   data: {
@@ -8,6 +8,10 @@ Component({
     authPlatform: '',
     authPlatformName: '',
     linkInput: '',
+    // 链接转换
+    linkConverting: false,
+    linkResult: null,
+    showLinkResult: false,
     // 商品列表
     productList: [],
     goodsOffset: 0,
@@ -239,16 +243,85 @@ Component({
     },
 
     /**
-     * 查找优惠
+     * 查找优惠 - 链接转换
+     * 目前仅支持拼多多链接，调用后端 /api/tranUrl 获取 h5_url
      */
-    onFindCoupon() {
+    async onFindCoupon() {
       const { linkInput } = this.data;
       if (!linkInput.trim()) {
         wx.showToast({ title: '请先粘贴购物链接', icon: 'none' });
         return;
       }
-      // 预留：跳转到优惠查询页或发送给后端解析
-      wx.showToast({ title: '功能开发中', icon: 'none' });
+
+      this.setData({
+        linkConverting: true,
+        showLinkResult: false,
+        linkResult: null,
+      });
+
+      wx.showLoading({ title: '转换中...', mask: true });
+
+      try {
+        // 获取当前登录用户的 uid
+        const uid = getApp().globalData.userId || getApp().globalData.openid || '';
+        const res = await convertLink(linkInput, uid);
+
+        wx.hideLoading();
+
+        if (!res || res.code !== 0) {
+          const msg = (res && res.message) || '链接转换失败，请检查链接是否有效';
+          wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+          this.setData({ linkConverting: false });
+          return;
+        }
+
+        const data = res.data;
+        this.setData({
+          linkConverting: false,
+          showLinkResult: true,
+          linkResult: {
+            originalUrl: data.originalUrl || linkInput.trim(),
+            convertedUrl: data.convertedUrl || '',
+            platformName: data.platformName || '拼多多',
+          },
+        });
+      } catch (err) {
+        wx.hideLoading();
+        console.error('[Index] 链接转换异常:', err);
+        this.setData({ linkConverting: false });
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      }
+    },
+
+    /**
+     * 复制转换后的推广链接
+     */
+    onCopyLink() {
+      const { linkResult } = this.data;
+      if (!linkResult || !linkResult.convertedUrl) {
+        wx.showToast({ title: '暂无链接可复制', icon: 'none' });
+        return;
+      }
+      wx.setClipboardData({
+        data: linkResult.convertedUrl,
+        success: () => {
+          wx.showToast({ title: '链接已复制，快去分享吧', icon: 'success' });
+        },
+        fail: () => {
+          wx.showToast({ title: '复制失败', icon: 'none' });
+        },
+      });
+    },
+
+    /**
+     * 清除转链结果，回到输入状态
+     */
+    onClearLinkResult() {
+      this.setData({
+        showLinkResult: false,
+        linkResult: null,
+        linkInput: '',
+      });
     },
 
     /**

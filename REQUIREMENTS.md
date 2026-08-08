@@ -1,7 +1,7 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.5.0  
-> 最后更新：2026-07-26
+> 多平台 CPS 返利小程序 | 版本 v0.6.0  
+> 最后更新：2026-08-09
 
 ---
 
@@ -30,7 +30,7 @@
 |------|------|--------|----------|
 | 淘宝/天猫 | `taobao` | `#ff5000` | 待接入 |
 | 京东 | `jd` | `#c91623` | 待接入 |
-| 拼多多 | `pdd` | `#e02e24` | 待接入 |
+| 拼多多 | `pdd` | `#e02e24` | 已接入（转链） |
 | 抖音 | `douyin` | `#000000` | 待接入 |
 
 ### 1.3 核心用户流程
@@ -98,6 +98,7 @@ boboshop/
 
 - 搜索入口：点击模拟搜索框跳转至商品搜索页
 - 导航栏标题「惠更好」，无返回按钮
+- **链接转换**：支持粘贴拼多多商品链接（如 p.pinduoduo.com），调 `GET /api/tranUrl` 获取 h5_url 转链结果，展示后可一键复制；其他平台暂不支持
 - **登录失败处理**：如果 `loginByOpenid` 返回失败（新用户未注册），首页弹出登录窗口，引导用户通过微信手机号授权完成注册/登录
   - 弹窗包含「微信手机号快捷登录」按钮（`open-type="getPhoneNumber"`）
   - 获取手机号 code 后，调用 `POST /api/user/loginByPhone` 注册/登录
@@ -393,14 +394,62 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 
 | 接口 | 路径 | 说明 | 状态 |
 |------|------|------|------|
-| 领券/转链 | `POST /api/goods/link` | 生成推广链接/口令 | 🔜 |
 | 用户信息 | `GET /api/user/info` | 获取用户信息和返利汇总 | 🔜 |
 | 订单列表 | `GET /api/orders` | 查询订单与返利记录 | 🔜 |
 | 提现 | `POST /api/withdraw` | 申请提现 | 🔜 |
 
 ---
 
-### 4.4 商品详情接口 ✅
+### 4.6 链接转换接口 ✅
+
+> 已实现，目前仅支持拼多多平台。
+
+**接口路径**：`GET https://hgh.pangpai-car.com/api/tranUrl`
+
+**请求参数**（Query）：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| uid | string | 是 | 当前用户 uid |
+| pid | string | 是 | 推广位 ID，固定 `43384525_317172887` |
+| platform | string | 是 | 平台标识，当前仅支持 `pdd` |
+| source_url | string | 是 | 用户粘贴的原始商品链接（需 URL Encode） |
+
+**请求示例**：
+```
+GET /api/tranUrl?uid=xxx&pid=43384525_317172887&platform=pdd&source_url=https%3A%2F%2Fp.pinduoduo.com%2FbpAqG3HP
+```
+
+**响应结构**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| result | boolean | 转换是否成功，true 表示成功 |
+| h5_url | string | 转换后的 CPS 推广链接 |
+
+**成功响应示例**：
+```json
+{
+  "result": true,
+  "h5_url": "https://mobile.yangkeduo.com/duo_transfer_channel.html?..."
+}
+```
+
+**前端处理逻辑**（`utils/api.js` `convertLink()`）：
+1. 通过 `detectPlatform()` 识别链接平台（匹配 `pinduoduo.com` / `yangkeduo.com`）
+2. 非拼多多链接直接拒绝，提示暂不支持
+3. 拼多多链接发起 GET 请求
+4. 判断 `result === true` 且 `h5_url` 存在
+5. 成功后在首页结果卡片中展示原始链接和转换结果，用户可一键复制
+
+**UI 交互**：
+- 首页「粘贴购物链接」输入框 → 点击「查找优惠」→ 按钮显示「正在转换...」loading 态
+- 转换成功后展示结果卡片：[拼多多] 原始链接 / 转换链接 / [一键复制链接]
+- 点击 ✕ 可清除结果回到输入状态
+
+---
+
+### 4.7 商品详情接口 ✅
 
 **接口路径**：`GET http://hgh.pangpai-car.com/api/goods`
 
@@ -537,14 +586,14 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 | 商品搜索列表页 | 搜索框 + 历史 + 平台 Tab + 商品列表 + 分页 | ✅ |
 | 首页搜索入口 | index 页跳转按钮 | ✅ |
 
-### Phase 2：商品详情与转化 🔜
+### Phase 2：商品详情与转化 🚧
 
 | 任务 | 说明 | 状态 |
 |------|------|------|
 | 商品详情页 | 大图、价格、返利、详情图文 | 🔜 |
-| 领券 / 转链 | 生成推广链接或口令 | 🔜 |
+| 领券 / 转链 | 生成推广链接或口令，当前支持拼多多 | ✅ |
 | 平台跳转 | 唤起对应电商 App / H5 | 🔜 |
-| API 真实对接 | 切换 Mock 为真实接口 | 🔜 |
+| API 真实对接 | 切换 Mock 为真实接口 | 🚧 进行中 |
 
 ### Phase 3：用户与返利体系 🔜
 
@@ -570,6 +619,7 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-08-09 | v0.6.0 | 链接转换功能：用户在首页粘贴拼多多商品链接（如 p.pinduoduo.com），调 GET /api/tranUrl（uid/pid/platform/source_url），判断 result===true 取 h5_url，结果卡片展示原始链接和转换链接，支持一键复制；其他平台暂不支持 | [4.6](#46-链接转换接口-) |
 | 2026-07-26 | v0.5.0 | 第三方平台跳转：点击唯品会/拼多多 icon 校验授权(checkAuth)，已授权直跳对应小程序，未授权获取链接(genAuthUrl)跳转授权；淘宝/京东/抖音仍跳搜索页 | - |
 | 2026-07-19 | v0.4.0 | 完整登录注册链路调通：对接真实接口格式 `{ result, data: { user: { id }, token } }`，兼容多种返回格式(result/success/code)，userId提取自 data.user.id，五步流程(wx.login→openid→loginByOpenid→getPhone→register)全部跑通 | - |
 | 2026-07-19 | v0.3.2 | 新增手机号登录：loginByOpenid 失败时首页弹出登录窗口，支持微信手机号授权(getPhoneNumber)，先 GET `/api/weixin/getPhone` 获取真实手机号，再 POST `/api/user/register` 完成注册 | - |
