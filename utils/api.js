@@ -87,6 +87,22 @@ function adaptResponse(rawData) {
 // ==================== 网络请求 ====================
 
 /**
+ * 解析响应数据：wx.request 默认 "json" 模式，
+ * 但当后端 Content-Type 不规范时 res.data 可能是字符串，需要兜底解析
+ */
+function parseResponseData(data) {
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.warn('[API] JSON 解析失败，保留原始字符串');
+      return data;
+    }
+  }
+  return data;
+}
+
+/**
  * 发起 GET 请求
  */
 function request(url) {
@@ -97,7 +113,7 @@ function request(url) {
       timeout: 5000,
       success: (res) => {
         if (res.statusCode === 200) {
-          resolve(res.data);
+          resolve(parseResponseData(res.data));
         } else {
           reject(new Error(`HTTP ${res.statusCode}`));
         }
@@ -122,7 +138,7 @@ function postRequest(url, data) {
       timeout: 5000,
       success: (res) => {
         if (res.statusCode === 200) {
-          resolve(res.data);
+          resolve(parseResponseData(res.data));
         } else {
           reject(new Error(`HTTP ${res.statusCode}`));
         }
@@ -472,18 +488,20 @@ function detectPlatform(url) {
 }
 
 /**
- * 链接转换：将拼多多商品链接转为 CPS 推广链接
+ * 链接转换：将电商商品链接转为 CPS 推广链接
  *
  * 接口: GET https://hgh.pangpai-car.com/api/tranUrl
  * 参数:
  *   - uid        {string} 当前用户 uid
  *   - pid        {string} 推广位ID，固定 43384525_317172887
- *   - platform   {string} 平台标识，pdd
  *   - source_url {string} 用户输入的原始链接
  *
- * 返回格式: { result: true, h5_url: "..." }
+ * 成功返回: { code: 200, urls: { h5_url, weapp_url, weapp_short_link, deeplink_url } }
+ * 失败返回: { code: -1, urls: { ... 全空 } }
+ * 不支持:   { code: -2, urls: { ... 全空 } }
  *
  * @param {string} url - 原始电商链接
+ * @param {string} uid - 当前用户 uid
  */
 async function convertLink(url, uid) {
   // 校验链接
@@ -496,23 +514,10 @@ async function convertLink(url, uid) {
     return { code: -1, message: '请先登录' };
   }
 
-  const platform = detectPlatform(url);
-
-  // 目前仅支持拼多多
-  if (platform !== 'pdd') {
-    return {
-      code: -2,
-      message: platform
-        ? `暂不支持${PLATFORM_NAMES[platform] || '该平台'}链接，当前仅支持拼多多`
-        : '无法识别该链接平台，请确认链接有效',
-    };
-  }
-
   try {
     const query = [
       `uid=${encodeURIComponent(uid)}`,
       `pid=${encodeURIComponent(TRAN_URL_PID)}`,
-      `platform=pdd`,
       `source_url=${encodeURIComponent(url.trim())}`,
     ].join('&');
 
@@ -520,20 +525,36 @@ async function convertLink(url, uid) {
     console.log('[API] convertLink 请求:', fullUrl);
 
     const result = await request(fullUrl);
-    console.log('[API] convertLink 响应:', result);
+    console.log('[API] convertLink 原始响应类型:', typeof result);
+    console.log('[API] convertLink 响应:', JSON.stringify(result));
 
-    if (result && result.result === true && result.h5_url) {
+    if (!result) {
+      return { code: -3, message: '网络异常，请重试' };
+    }
+
+    const resCode = result.code;
+    console.log('[API] convertLink resCode:', resCode, 'hasUrls:', !!result.urls, 'hasH5:', !!(result.urls && result.urls.h5_url));
+
+    // 成功
+    if (resCode === 200 && result.urls && result.urls.h5_url) {
       return {
         code: 0,
         data: {
           originalUrl: url.trim(),
-          convertedUrl: result.h5_url,
-          platform: 'pdd',
-          platformName: '拼多多',
+          h5_url: result.urls.h5_url,
+          weapp_url: result.urls.weapp_url || '',
+          weapp_short_link: result.urls.weapp_short_link || '',
+          deeplink_url: result.urls.deeplink_url || '',
         },
       };
     }
 
+    // 平台不支持
+    if (resCode === -2) {
+      return { code: -2, message: '暂不支持该平台的链接' };
+    }
+
+    // 转换失败
     return { code: -3, message: '链接转换失败，请检查链接是否有效' };
   } catch (err) {
     console.warn('[API] convertLink 失败:', err.message);

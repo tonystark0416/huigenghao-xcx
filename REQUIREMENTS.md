@@ -1,6 +1,6 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.6.0  
+> 多平台 CPS 返利小程序 | 版本 v0.6.3  
 > 最后更新：2026-08-09
 
 ---
@@ -402,7 +402,7 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 
 ### 4.6 链接转换接口 ✅
 
-> 已实现，目前仅支持拼多多平台。
+> 已实现，支持拼多多和唯品会链接。
 
 **接口路径**：`GET https://hgh.pangpai-car.com/api/tranUrl`
 
@@ -412,39 +412,70 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 |------|------|------|------|
 | uid | string | 是 | 当前用户 uid |
 | pid | string | 是 | 推广位 ID，固定 `43384525_317172887` |
-| platform | string | 是 | 平台标识，当前仅支持 `pdd` |
 | source_url | string | 是 | 用户粘贴的原始商品链接（需 URL Encode） |
+
+> 后端自动识别链接所属平台，无需传入 `platform` 参数。
 
 **请求示例**：
 ```
-GET /api/tranUrl?uid=xxx&pid=43384525_317172887&platform=pdd&source_url=https%3A%2F%2Fp.pinduoduo.com%2FbpAqG3HP
+GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pinduoduo.com%2FbpAqG3HP
 ```
 
 **响应结构**：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| result | boolean | 转换是否成功，true 表示成功 |
-| h5_url | string | 转换后的 CPS 推广链接 |
+| code | number | 状态码：200=成功，-1=转换失败，-2=平台不支持 |
+| urls.h5_url | string | H5 推广链接 |
+| urls.weapp_url | string | 小程序跳转路径 |
+| urls.weapp_short_link | string | 小程序短链接（可能为空） |
+| urls.deeplink_url | string | App 唤起链接 |
 
 **成功响应示例**：
 ```json
 {
-  "result": true,
-  "h5_url": "https://mobile.yangkeduo.com/duo_transfer_channel.html?..."
+    "code": 200,
+    "urls": {
+        "h5_url": "https://t.vip.com/r5qot2",
+        "weapp_url": "pages/productDetail/productDetail?brandId=1711324120&goodsId=6919236010500463512&tra_from=adp%3A...",
+        "weapp_short_link": "",
+        "deeplink_url": "vipshop://showGoodsDetail?pid=6919236010500463512&..."
+    }
+}
+```
+
+**转换失败**：
+```json
+{
+    "code": -1,
+    "urls": {
+        "h5_url": "",
+        "weapp_url": "",
+        "weapp_short_link": "",
+        "deeplink_url": ""
+    }
+}
+```
+
+**不支持该平台**（如京东、淘宝）：
+```json
+{
+    "code": -2,
+    "urls": { "h5_url": "", "weapp_url": "", "weapp_short_link": "", "deeplink_url": "" }
 }
 ```
 
 **前端处理逻辑**（`utils/api.js` `convertLink()`）：
-1. 通过 `detectPlatform()` 识别链接平台（匹配 `pinduoduo.com` / `yangkeduo.com`）
-2. 非拼多多链接直接拒绝，提示暂不支持
-3. 拼多多链接发起 GET 请求
-4. 判断 `result === true` 且 `h5_url` 存在
-5. 成功后在首页结果卡片中展示原始链接和转换结果，用户可一键复制
+1. 校验 `url` 和 `uid` 是否有效
+2. 发起 GET 请求（不传 `platform`，后端自动识别）
+3. 判断 `code === 200` 且 `urls.h5_url` 存在 → 成功
+4. `code === -2` → 提示「暂不支持该平台的链接」
+5. 其他情况 → 提示转换失败
 
 **UI 交互**：
 - 首页「粘贴购物链接」输入框 → 点击「查找优惠」→ 按钮显示「正在转换...」loading 态
-- 转换成功后展示结果卡片：[拼多多] 原始链接 / 转换链接 / [一键复制链接]
+- 转换成功后展示结果卡片：原始链接 / H5推广链接 / 小程序路径 / App唤起链接，每个链接单独可复制
+- 底部一键复制按钮默认复制 H5 推广链接
 - 点击 ✕ 可清除结果回到输入状态
 
 ---
@@ -619,6 +650,9 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&platform=pdd&source_url=https%3A
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-08-09 | v0.6.3 | 修复转链接口 wx.request 响应解析问题：后端 Content-Type 不规范时 res.data 为字符串导致 code 判断失败，增加 JSON.parse 兜底；正式移除 platform 参数 | [4.6](#46-链接转换接口-) |
+| 2026-08-09 | v0.6.2 | 修复拼多多短链接（如 p.pinduoduo.com）转链失败：前端恢复 detectPlatform 检测并传 platform 参数给后端作为辅助识别 | [4.6](#46-链接转换接口-) |
+| 2026-08-09 | v0.6.1 | 链接转换接口升级：返回格式改为 `{ code, urls: { h5_url, weapp_url, weapp_short_link, deeplink_url } }`，后端自动识别平台，无需前端传 platform；新增支持唯品会链接；code=-2 表示平台不支持 | [4.6](#46-链接转换接口-) |
 | 2026-08-09 | v0.6.0 | 链接转换功能：用户在首页粘贴拼多多商品链接（如 p.pinduoduo.com），调 GET /api/tranUrl（uid/pid/platform/source_url），判断 result===true 取 h5_url，结果卡片展示原始链接和转换链接，支持一键复制；其他平台暂不支持 | [4.6](#46-链接转换接口-) |
 | 2026-07-26 | v0.5.0 | 第三方平台跳转：点击唯品会/拼多多 icon 校验授权(checkAuth)，已授权直跳对应小程序，未授权获取链接(genAuthUrl)跳转授权；淘宝/京东/抖音仍跳搜索页 | - |
 | 2026-07-19 | v0.4.0 | 完整登录注册链路调通：对接真实接口格式 `{ result, data: { user: { id }, token } }`，兼容多种返回格式(result/success/code)，userId提取自 data.user.id，五步流程(wx.login→openid→loginByOpenid→getPhone→register)全部跑通 | - |

@@ -31,7 +31,7 @@
   <!-- 链接转换结果卡片 -->
   <view class="link-result-card" wx:if="{{showLinkResult && linkResult}}">
     <view class="result-header">
-      <text class="result-platform-badge">{{linkResult.platformName}}</text>
+      <text class="result-label-title">转换结果</text>
       <view class="result-close" bindtap="onClearLinkResult">✕</view>
     </view>
     <view class="result-body">
@@ -40,12 +40,31 @@
         <text class="result-url-text">{{linkResult.originalUrl}}</text>
       </view>
       <view class="result-divider"></view>
-      <view class="result-section">
-        <text class="result-label">转换链接</text>
-        <text class="result-url-text result-url-highlight">{{linkResult.convertedUrl}}</text>
-      </view>
+      <block wx:if="{{linkResult.h5_url}}">
+        <view class="result-section">
+          <text class="result-label">H5 推广链接</text>
+          <text class="result-url-text result-url-highlight">{{linkResult.h5_url}}</text>
+        </view>
+        <button class="result-link-copy-btn" data-field="h5_url" bindtap="onCopyField">复制 H5 链接</button>
+        <view class="result-divider" wx:if="{{linkResult.weapp_url || linkResult.deeplink_url}}"></view>
+      </block>
+      <block wx:if="{{linkResult.weapp_url}}">
+        <view class="result-section">
+          <text class="result-label">小程序路径</text>
+          <text class="result-url-text">{{linkResult.weapp_url}}</text>
+        </view>
+        <button class="result-link-copy-btn result-link-copy-btn-sub" data-field="weapp_url" bindtap="onCopyField">复制小程序路径</button>
+      </block>
+      <block wx:if="{{linkResult.deeplink_url}}">
+        <view class="result-divider" wx:if="{{linkResult.weapp_url}}"></view>
+        <view class="result-section">
+          <text class="result-label">App 唤起链接</text>
+          <text class="result-url-text">{{linkResult.deeplink_url}}</text>
+        </view>
+        <button class="result-link-copy-btn result-link-copy-btn-sub" data-field="deeplink_url" bindtap="onCopyField">复制 App 链接</button>
+      </block>
     </view>
-    <button class="result-copy-btn" bindtap="onCopyLink">一键复制链接</button>
+    <button class="result-copy-btn" bindtap="onCopyLink">一键复制推广链接</button>
   </view>
 
   <!-- 电商平台入口 -->
@@ -115,7 +134,7 @@
   <view class="login-mask" bindtap="closeLoginModal"></view>
   <view class="login-dialog">
     <view class="login-title">欢迎使用惠更好</view>
-    <view class="login-desc">授权手机号即可开始使用</view>
+    <view class="login-desc">为了能体验完整的服务，请您进行登录</view>
     <button class="login-phone-btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
       微信手机号快捷登录
     </button>

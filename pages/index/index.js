@@ -29,10 +29,6 @@ Component({
 
   lifetimes: {
     attached() {
-      // 延迟检查登录弹窗
-      setTimeout(() => {
-        this.checkLoginModal();
-      }, 1000);
       // 加载首页商品列表
       this.loadGoodsList();
     },
@@ -40,25 +36,31 @@ Component({
 
   pageLifetimes: {
     show() {
-      this.checkLoginModal();
+      // 不再自动弹出登录弹窗，由用户行为触发
     },
   },
 
   methods: {
     /**
-     * 检查是否需要显示手机号登录弹窗
+     * 确保用户已登录，未登录则弹出登录弹窗并存储回调
+     * @param {Function} callback - 登录成功后要执行的回调
+     * @returns {boolean} true=已登录可直接执行，false=已拦截需等待登录
      */
-    checkLoginModal() {
+    ensureLogin(callback) {
       const app = getApp();
       if (app.globalData.needPhoneLogin && !app.globalData.isLogin) {
+        this._pendingAction = callback;
         this.setData({ showLoginModal: true });
+        return false;
       }
+      return true;
     },
 
     /**
-     * 关闭登录弹窗
+     * 关闭登录弹窗（同时清除待执行动作）
      */
     closeLoginModal() {
+      this._pendingAction = null;
       this.setData({ showLoginModal: false });
     },
 
@@ -152,6 +154,14 @@ Component({
           this.setData({ showLoginModal: false });
           wx.showToast({ title: '登录成功', icon: 'success' });
           console.log('[Login] 注册登录成功，userId:', app.globalData.userId);
+
+          // 执行登录前的待办动作（如搜索、转链、平台跳转、商品点击）
+          if (this._pendingAction) {
+            const action = this._pendingAction;
+            this._pendingAction = null;
+            // 延迟 500ms，让登录成功 toast 展示后再执行
+            setTimeout(() => action(), 500);
+          }
         } else {
           wx.showToast({ title: (res && res.message) || '登录失败，请重试', icon: 'none' });
         }
@@ -244,9 +254,11 @@ Component({
 
     /**
      * 查找优惠 - 链接转换
-     * 目前仅支持拼多多链接，调用后端 /api/tranUrl 获取 h5_url
+     * 支持拼多多和唯品会链接，调用后端 /api/tranUrl 获取推广链接
      */
     async onFindCoupon() {
+      if (!this.ensureLogin(() => this.onFindCoupon())) return;
+
       const { linkInput } = this.data;
       if (!linkInput.trim()) {
         wx.showToast({ title: '请先粘贴购物链接', icon: 'none' });
@@ -281,8 +293,10 @@ Component({
           showLinkResult: true,
           linkResult: {
             originalUrl: data.originalUrl || linkInput.trim(),
-            convertedUrl: data.convertedUrl || '',
-            platformName: data.platformName || '拼多多',
+            h5_url: data.h5_url || '',
+            weapp_url: data.weapp_url || '',
+            weapp_short_link: data.weapp_short_link || '',
+            deeplink_url: data.deeplink_url || '',
           },
         });
       } catch (err) {
@@ -294,16 +308,40 @@ Component({
     },
 
     /**
-     * 复制转换后的推广链接
+     * 复制指定的链接字段
      */
-    onCopyLink() {
+    onCopyField(e) {
+      const { field } = e.currentTarget.dataset;
       const { linkResult } = this.data;
-      if (!linkResult || !linkResult.convertedUrl) {
+      if (!linkResult) return;
+
+      const url = linkResult[field];
+      if (!url) {
         wx.showToast({ title: '暂无链接可复制', icon: 'none' });
         return;
       }
       wx.setClipboardData({
-        data: linkResult.convertedUrl,
+        data: url,
+        success: () => {
+          wx.showToast({ title: '链接已复制，快去分享吧', icon: 'success' });
+        },
+        fail: () => {
+          wx.showToast({ title: '复制失败', icon: 'none' });
+        },
+      });
+    },
+
+    /**
+     * 复制转换后的推广链接（兼容旧逻辑，默认复制 h5_url）
+     */
+    onCopyLink() {
+      const { linkResult } = this.data;
+      if (!linkResult || !linkResult.h5_url) {
+        wx.showToast({ title: '暂无链接可复制', icon: 'none' });
+        return;
+      }
+      wx.setClipboardData({
+        data: linkResult.h5_url,
         success: () => {
           wx.showToast({ title: '链接已复制，快去分享吧', icon: 'success' });
         },
@@ -432,14 +470,22 @@ Component({
      */
     onGoodsTap(e) {
       const { id } = e.currentTarget.dataset;
-      if (id) {
-        wx.navigateTo({ url: `/pages/goods/goods?id=${id}` });
-      }
+      if (!id) return;
+      if (!this.ensureLogin(() => this._doGoodsTap(id))) return;
+      this._doGoodsTap(id);
+    },
+
+    /**
+     * 商品点击核心逻辑（登录后执行）
+     */
+    _doGoodsTap(id) {
+      wx.navigateTo({ url: `/pages/goods/goods?id=${id}` });
     },
 
     // ==================== 其他 ====================
 
     goToSearch() {
+      if (!this.ensureLogin(() => this.goToSearch())) return;
       wx.navigateTo({
         url: '/pages/search/search',
       });
@@ -452,7 +498,14 @@ Component({
      */
     async onPlatformTap(e) {
       const { key } = e.currentTarget.dataset;
+      if (!this.ensureLogin(() => this._doPlatformTap(key))) return;
+      this._doPlatformTap(key);
+    },
 
+    /**
+     * 平台跳转核心逻辑（登录后执行）
+     */
+    async _doPlatformTap(key) {
       if (key === 'vip' || key === 'pdd') {
         await this.jumpToThirdPlatform(key);
       } else {
