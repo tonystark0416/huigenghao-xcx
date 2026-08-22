@@ -18,16 +18,20 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/life/life",
-        "text": "吃喝玩乐"
+        "text": "吃喝玩乐",
+        "iconPath": "images/tabbar/life.png",
+        "selectedIconPath": "images/tabbar/life-active.png"
       }
     ]
   },
   "navigateToMiniProgramAppIdList": [
-    "wx2c348cf579062e56"
+    "wxde8ac0a21135c07d"
   ],
   "style": "v2",
   "sitemapLocation": "sitemap.json",

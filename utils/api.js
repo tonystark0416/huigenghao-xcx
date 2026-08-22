@@ -565,26 +565,13 @@ async function convertLink(url, uid) {
 // ==================== 吃喝玩乐 Banner ====================
 
 /**
- * 获取吃喝玩乐活动服务地址
- * 优先级：app.js globalData.lifeApiBase > 默认 localhost
- */
-function getLifeBaseUrl() {
-  try {
-    const app = getApp();
-    return (app && app.globalData && app.globalData.lifeApiBase) || 'http://localhost:3000';
-  } catch (e) {
-    return 'http://localhost:3000';
-  }
-}
-
-/**
  * 获取吃喝玩乐 Banner 活动列表
  * GET /api/banner
  * @returns {Promise<Array>} banner 列表 [{ id, extra_id, title, sub_text, banner_img_url, sort }]
  */
 async function getBanners() {
   try {
-    const result = await request(`${getLifeBaseUrl()}/api/banner`);
+    const result = await request(`${BASE_URL}/api/banner`);
     console.log('[API] getBanners 响应:', JSON.stringify(result));
     if (Array.isArray(result)) {
       return result.sort((a, b) => (b.sort || 0) - (a.sort || 0));
@@ -604,7 +591,7 @@ async function getBanners() {
  */
 async function getMeituanReferralLink(actId) {
   try {
-    const url = `${getLifeBaseUrl()}/api/meituan/referral-link-by-act-id?actId=${encodeURIComponent(actId)}`;
+    const url = `${BASE_URL}/api/meituan/referral-link-by-act-id?actId=${encodeURIComponent(actId)}`;
     const result = await request(url);
     console.log('[API] getMeituanReferralLink 响应:', JSON.stringify(result));
     return result;

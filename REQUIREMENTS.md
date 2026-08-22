@@ -1,6 +1,6 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.7.0  
+> 多平台 CPS 返利小程序 | 版本 v0.7.1  
 > 最后更新：2026-08-23
 
 ---
@@ -139,12 +139,12 @@ huigenghao/
 
 **功能描述**：
 - 底部第二个 tab，标题「吃喝玩乐」
-- 进入页面调用 `GET /api/banner`（本地服务 `http://localhost:3000`，上线替换线上域名）获取活动 banner 列表
+- 进入页面调用 `GET https://hgh.pangpai-car.com/api/banner` 获取活动 banner 列表
 - 按 `sort` 降序展示活动卡片：图片（`banner_img_url`）+ 标题（`title`）+ 子标题（`sub_text`）+ 箭头
 - 点击卡片：调用 `GET /api/meituan/referral-link-by-act-id?actId={extra_id}` 获取转链
-- 从响应 `referralLinkMap` 中取 key=4 的小程序路径，调用 `wx.navigateToMiniProgram` 跳转美团外卖小程序（appId: `wx2c348cf579062e56`）
+- 从响应 `referralLinkMap` 中取 key=4 的小程序路径，调用 `wx.navigateToMiniProgram` 跳转美团外卖小程序（appId: `wxde8ac0a21135c07d`）
 
-**接口**：
+**接口**（统一走线上域名 `https://hgh.pangpai-car.com`）：
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -152,8 +152,8 @@ huigenghao/
 | `/api/meituan/referral-link-by-act-id?actId=xxx` | GET | 获取活动转链，`referralLinkMap` 中 key=4 为小程序路径 |
 
 **前置要求**：
-- `app.json` 已配置 `navigateToMiniProgramAppIdList: ["wx2c348cf579062e56"]`
-- 活动服务域名需加入 request 合法域名（开发时可勾选"不校验合法域名"）
+- `app.json` 已配置 `navigateToMiniProgramAppIdList: ["wxde8ac0a21135c07d"]`
+- `hgh.pangpai-car.com` 已加入小程序后台 request 合法域名
 
 ### 3.3 商品搜索列表页 (`pages/search/`)
 
@@ -676,6 +676,7 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-08-23 | v0.7.1 | 活动服务全部迁移线上：吃喝玩乐 banner 与美团转链接口改走 `https://hgh.pangpai-car.com`，移除 localhost 配置与 app.js lifeApiBase | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-23 | v0.7.0 | 新增底部 tabBar（首页/吃喝玩乐）；新增吃喝玩乐页：调 /api/banner 展示活动卡片（图片+标题+子标题），点击调 /api/meituan/referral-link-by-act-id 获取转链，取 referralLinkMap key=4 小程序路径跳转美团外卖小程序；app.json 增加 navigateToMiniProgramAppIdList | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-10 | v0.6.4 | 需求文档同步代码：新增唯品会到平台表/映射表/设计规范；更新 3.1 首页描述（ensureLogin 按需登录、精选好物、链接转链支持拼多多+唯品会）；调整 4.1 通用约定为实际 base URL 和 GET 方式；修正 4.4 授权接口为 GET；更新 Phase 2 路线图状态 | - |
 | 2026-08-09 | v0.6.3 | 修复转链接口 wx.request 响应解析问题：后端 Content-Type 不规范时 res.data 为字符串导致 code 判断失败，增加 JSON.parse 兜底；正式移除 platform 参数 | [4.6](#46-链接转换接口-) |

@@ -1,7 +1,7 @@
 const api = require('../../utils/api');
 
 // 美团外卖小程序 appId（跳转目标）
-const MEITUAN_APP_ID = 'wx2c348cf579062e56';
+const MEITUAN_APP_ID = 'wxde8ac0a21135c07d';
 // 转链返回中 key=4 对应小程序路径
 const MINI_PROGRAM_LINK_KEY = '4';
 
