@@ -1,0 +1,33 @@
+<view class="page">
+  <view class="loading" wx:if="{{loading}}">加载中...</view>
+
+  <block wx:else>
+    <view class="empty" wx:if="{{bannerList.length === 0}}">暂无活动，敬请期待</view>
+
+    <view
+      class="banner-card"
+      wx:for="{{bannerList}}"
+      wx:key="id"
+      wx:if="{{bannerList.length > 0}}"
+      data-id="{{item.id}}"
+      data-extra-id="{{item.extra_id}}"
+      data-title="{{item.title}}"
+      bindtap="onBannerTap"
+      hover-class="banner-card-hover"
+    >
+      <image
+        class="banner-img"
+        src="{{item.banner_img_url}}"
+        mode="widthFix"
+        lazy-load
+        binderror="onImageError"
+        data-index="{{index}}"
+      ></image>
+      <view class="banner-info">
+        <text class="banner-title">{{item.title}}</text>
+        <text class="banner-sub">{{item.sub_text}}</text>
+        <view class="banner-arrow">›</view>
+      </view>
+    </view>
+  </block>
+</view>

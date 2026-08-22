@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/life/life",
     "pages/logs/logs",
     "pages/search/search",
     "pages/goods/goods"
@@ -9,6 +10,25 @@
     "navigationBarTextStyle": "black",
     "navigationStyle": "custom"
   },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#e02e24",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/life/life",
+        "text": "吃喝玩乐"
+      }
+    ]
+  },
+  "navigateToMiniProgramAppIdList": [
+    "wx2c348cf579062e56"
+  ],
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"

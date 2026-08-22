@@ -126,5 +126,9 @@ App({
     token: '',
     isLogin: false,
     needPhoneLogin: false,
+    // 吃喝玩乐活动服务地址：
+    // - 开发者工具/模拟器: http://localhost:3000
+    // - 真机预览: 改为电脑局域网 IP，如 http://192.168.1.100:3000
+    lifeApiBase: 'http://localhost:3000',
   },
 });
