@@ -33,6 +33,14 @@
   "navigateToMiniProgramAppIdList": [
     "wxde8ac0a21135c07d"
   ],
+  "permission": {
+    "scope.userFuzzyLocation": {
+      "desc": "你的位置信息将用于按距离排序展示附近商品"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getFuzzyLocation"
+  ],
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"

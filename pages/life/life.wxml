@@ -1,14 +1,32 @@
 <view class="page">
+  <!-- 搜索框 -->
+  <view class="search-bar">
+    <view class="search-input-wrap">
+      <view class="search-icon"></view>
+      <input
+        class="search-input"
+        placeholder="搜索美食、玩乐、套餐..."
+        placeholder-class="search-placeholder"
+        value="{{searchText}}"
+        confirm-type="search"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchTap"
+      />
+      <text class="search-clear" wx:if="{{searchText}}" bindtap="onClearSearch">✕</text>
+    </view>
+    <view class="search-btn" bindtap="onSearchTap">搜索</view>
+  </view>
+
+  <!-- Banner 区（常驻显示） -->
   <view class="loading" wx:if="{{loading}}">加载中...</view>
-
+  <block wx:elif="{{bannerList.length === 0}}">
+    <view class="empty">暂无活动，敬请期待</view>
+  </block>
   <block wx:else>
-    <view class="empty" wx:if="{{bannerList.length === 0}}">暂无活动，敬请期待</view>
-
     <view
       class="banner-card"
       wx:for="{{bannerList}}"
       wx:key="id"
-      wx:if="{{bannerList.length > 0}}"
       data-id="{{item.id}}"
       data-extra-id="{{item.extra_id}}"
       data-title="{{item.title}}"
@@ -29,5 +47,62 @@
         <view class="banner-arrow">›</view>
       </view>
     </view>
+  </block>
+
+  <!-- 搜索结果区（展示在 banner 下方） -->
+  <block wx:if="{{searchDone}}">
+    <!-- 排序栏 -->
+    <view class="sort-bar">
+      <view
+        class="sort-item {{sortField === item.value ? 'sort-item-active' : ''}}"
+        wx:for="{{sortOptions}}"
+        wx:key="value"
+        data-field="{{item.value}}"
+        bindtap="onSortTap"
+      >{{item.label}}</view>
+    </view>
+
+    <view class="search-loading" wx:if="{{searching}}">搜索中...</view>
+
+    <block wx:else>
+      <view class="empty" wx:if="{{empty}}">没有找到相关商品，换个关键词试试</view>
+
+      <view
+        class="goods-card"
+        wx:for="{{goodsList}}"
+        wx:key="skuViewId"
+        data-index="{{index}}"
+      >
+        <image
+          class="goods-img"
+          src="{{item.image}}"
+          mode="aspectFill"
+          lazy-load
+          binderror="onGoodsImageError"
+          data-index="{{index}}"
+        ></image>
+        <view class="goods-info">
+          <view class="goods-title-wrap">
+            <text class="goods-brand" wx:if="{{item.brandName}}">{{item.brandName}}</text>
+            <text class="goods-title">{{item.title}}</text>
+          </view>
+          <view class="goods-meta">
+            <text class="goods-poi" wx:if="{{item.poiName}}">{{item.poiName}}</text>
+            <text class="goods-sales" wx:if="{{item.sales}}">{{item.sales}}</text>
+          </view>
+          <view class="goods-price-row">
+            <text class="goods-price">¥{{item.price}}</text>
+            <text class="goods-original" wx:if="{{item.originalPrice && item.originalPrice !== item.price}}">¥{{item.originalPrice}}</text>
+            <text class="goods-rebate" wx:if="{{item.rebate}}">返¥{{item.rebate}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="goods-footer" wx:if="{{goodsList.length > 0}}">
+        <text wx:if="{{loadMoreLoading}}">加载中...</text>
+        <text wx:elif="{{!hasNext}}">没有更多了</text>
+        <text wx:else>上拉加载更多</text>
+      </view>
+    </block>
   </block>
 </view>

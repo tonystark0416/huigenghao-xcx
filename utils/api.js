@@ -601,6 +601,111 @@ async function getMeituanReferralLink(actId) {
   }
 }
 
+// ==================== 吃喝玩乐商品搜索 ====================
+
+/**
+ * 将美团搜索接口的商品字段映射为内部统一结构
+ *
+ * 真实字段 → 内部字段：
+ *   couponPackDetail.name          → title       (商品名)
+ *   couponPackDetail.headUrl       → image       (商品图)
+ *   couponPackDetail.sellPrice     → price       (售价)
+ *   couponPackDetail.originalPrice → originalPrice (原价)
+ *   couponPackDetail.saleVolume    → sales       (销量文案)
+ *   couponPackDetail.categoryName  → category    (分类)
+ *   couponPackDetail.skuViewId     → skuViewId   (商品标识)
+ *   brandInfo.brandName            → brandName   (品牌)
+ *   brandInfo.brandLogoUrl         → brandLogo   (品牌logo)
+ *   commissionInfo.commission      → rebate      (佣金)
+ *   commissionInfo.commissionPercent → rebatePercent (佣金比例)
+ *   deliverablePoiInfo.poiName     → poiName     (门店名)
+ *   deliverablePoiInfo.deliveryDistance → distance (配送距离)
+ */
+function mapMeituanGoods(item) {
+  const coupon = item.couponPackDetail || {};
+  const brand = item.brandInfo || {};
+  const commission = item.commissionInfo || {};
+  const poi = item.deliverablePoiInfo || {};
+
+  return {
+    skuViewId: coupon.skuViewId || '',
+    title: coupon.name || '',
+    image: coupon.headUrl || '',
+    price: coupon.sellPrice || '',
+    originalPrice: coupon.originalPrice || '',
+    sales: coupon.saleVolume || '',
+    category: coupon.categoryName || '',
+    brandName: brand.brandName || '',
+    brandLogo: brand.brandLogoUrl || '',
+    rebate: commission.commission || '',
+    rebatePercent: commission.commissionPercent || '',
+    poiName: poi.poiName || '',
+    distance: poi.deliveryDistance || '',
+  };
+}
+
+/**
+ * 搜索美团吃喝玩乐商品
+ *
+ * 接口: GET ${BASE_URL}/api/meituan/goods
+ * 请求参数 (query):
+ *   - searchText  {string}  搜索关键词
+ *   - longitude   {string}  经度（可为空）
+ *   - latitude    {string}  纬度（可为空）
+ *   - pageSize    {number}  每页条数，默认20
+ *   - pageNo      {number}  页码，从1开始
+ *   - searchId    {string}  分页标识，翻页时回传上一页返回的 searchId
+ *   - sortField   {number}  排序方式：1=综合排序，2=价格升序，6=离我最近（默认1）
+ *
+ * 成功返回: { success: true, data: { code: 0, message, data: [商品...], hasNext, searchId } }
+ *
+ * @param {Object} params
+ * @param {string} params.searchText - 搜索关键词
+ * @param {string} [params.longitude=''] - 经度
+ * @param {string} [params.latitude=''] - 纬度
+ * @param {number} [params.pageNo=1] - 页码，从1开始
+ * @param {number} [params.pageSize=20] - 每页条数
+ * @param {string} [params.searchId=''] - 分页标识
+ * @param {number} [params.sortField=1] - 排序方式：1综合、2价格升序、6离我最近
+ * @returns {Promise<{list: Array, hasNext: boolean, searchId: string}>}
+ */
+async function searchMeituanGoods({ searchText = '', longitude = '', latitude = '', pageNo = 1, pageSize = 20, searchId = '', sortField = 1 } = {}) {
+  try {
+    const query = [
+      `searchText=${encodeURIComponent(searchText)}`,
+      `longitude=${encodeURIComponent(longitude)}`,
+      `latitude=${encodeURIComponent(latitude)}`,
+      `pageSize=${pageSize}`,
+      `pageNo=${pageNo}`,
+      `searchId=${encodeURIComponent(searchId)}`,
+      `sortField=${sortField}`,
+    ].join('&');
+
+    const url = `${BASE_URL}/api/meituan/goods?${query}`;
+    console.log('[API] searchMeituanGoods 请求URL:', url);
+    const result = await request(url);
+    console.log('[API] searchMeituanGoods 响应:', JSON.stringify(result));
+
+    if (!result || !result.success || !result.data || result.data.code !== 0) {
+      console.warn('[API] searchMeituanGoods 返回异常:', result);
+      return { list: [], hasNext: false, searchId: '' };
+    }
+
+    const d = result.data;
+    const rawList = Array.isArray(d.data) ? d.data : [];
+    const list = rawList.map(mapMeituanGoods);
+
+    return {
+      list,
+      hasNext: !!d.hasNext,
+      searchId: d.searchId || '',
+    };
+  } catch (err) {
+    console.warn('[API] searchMeituanGoods 失败:', err.message);
+    return { list: [], hasNext: false, searchId: '' };
+  }
+}
+
 module.exports = {
   searchProducts,
   getProductDetail,
@@ -612,6 +717,7 @@ module.exports = {
   detectPlatform,
   getBanners,
   getMeituanReferralLink,
+  searchMeituanGoods,
   setUserConfig,
   PLATFORM_NAMES,
 };

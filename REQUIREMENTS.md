@@ -1,6 +1,6 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.7.1  
+> 多平台 CPS 返利小程序 | 版本 v0.8.5  
 > 最后更新：2026-08-23
 
 ---
@@ -135,14 +135,20 @@ huigenghao/
 
 ### 3.2 吃喝玩乐页 (`pages/life/`)
 
-**状态**：✅ 已完成基础版本（v0.7.0）
+**状态**：✅ 已完成基础版本（v0.8.0）
 
 **功能描述**：
 - 底部第二个 tab，标题「吃喝玩乐」
+- 页面顶部为搜索栏：关键词输入 + 一键清空 + 搜索按钮（点击或键盘确认触发）
+- 活动 banner 列表常驻显示在搜索栏下方；搜索后商品结果列表展示在 banner 下方，清空搜索词后仅保留 banner
 - 进入页面调用 `GET https://hgh.pangpai-car.com/api/banner` 获取活动 banner 列表
 - 按 `sort` 降序展示活动卡片：图片（`banner_img_url`）+ 标题（`title`）+ 子标题（`sub_text`）+ 箭头
 - 点击卡片：调用 `GET /api/meituan/referral-link-by-act-id?actId={extra_id}` 获取转链
 - 从响应 `referralLinkMap` 中取 key=4 的小程序路径，调用 `wx.navigateToMiniProgram` 跳转美团外卖小程序（appId: `wxde8ac0a21135c07d`）
+- 搜索商品：调用 `GET /api/meituan/goods`，返回商品列表，卡片展示图片（`headUrl`）、标题（`name`）、品牌、门店、销量、售价（`sellPrice`）、原价（`originalPrice`）、佣金（`commissionInfo.commission`）
+- 搜索结果上方提供排序栏：综合排序（`sortField=1`）、价格升序（`sortField=2`）、离我最近（`sortField=6`），切换排序后重新搜索第一页
+- 进入页面时即调用 `wx.getFuzzyLocation`（模糊定位，type=gcj02）获取定位并缓存到 data，控制台打印经纬度；搜索第一页、翻页、切换排序均携带缓存的 `longitude`/`latitude` 传给接口；「离我最近」排序时若定位尚未就绪则重新获取一次，定位失败时提示并继续按空经纬度请求
+- 商品列表分页：上拉触底加载下一页，翻页回传上一页返回的 `searchId`，`hasNext=false` 时停止加载
 
 **接口**（统一走线上域名 `https://hgh.pangpai-car.com`）：
 
@@ -150,6 +156,7 @@ huigenghao/
 |------|------|------|
 | `/api/banner` | GET | 获取活动 banner 列表 |
 | `/api/meituan/referral-link-by-act-id?actId=xxx` | GET | 获取活动转链，`referralLinkMap` 中 key=4 为小程序路径 |
+| `/api/meituan/goods?searchText=xxx&longitude=&latitude=&pageSize=20&pageNo=1&searchId=&sortField=` | GET | 搜索美团吃喝玩乐商品（线上域名 `https://hgh.pangpai-car.com`）；参数 `sortField`：1=综合排序、2=价格升序、6=离我最近；返回 `{ success, data: { code, data: [...], hasNext, searchId } }`，`data[].couponPackDetail` 为商品信息、`brandInfo` 为品牌、`commissionInfo` 为佣金、`deliverablePoiInfo` 为门店/距离 |
 
 **前置要求**：
 - `app.json` 已配置 `navigateToMiniProgramAppIdList: ["wxde8ac0a21135c07d"]`
@@ -676,6 +683,12 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-08-23 | v0.8.5 | 美团商品搜索接口域名从本地 `http://localhost:3000` 切回线上 `https://hgh.pangpai-car.com`（后端已发布） | [3.2](#32-吃喝玩乐页-pageslife-) |
+| 2026-08-23 | v0.8.4 | 移除 `wx.getLocation` 降级逻辑（该接口平台审核中），仅使用 `wx.getFuzzyLocation`；`requiredPrivateInfos` 只保留 `getFuzzyLocation` | [3.2](#32-吃喝玩乐页-pageslife-) |
+| 2026-08-23 | v0.8.3 | 吃喝玩乐页定位改为模糊定位：`wx.getLocation` → `wx.getFuzzyLocation`（type=gcj02），`app.json` 权限声明改为 `scope.userFuzzyLocation`，定位成功在控制台打印经纬度 | [3.2](#32-吃喝玩乐页-pageslife-) |
+| 2026-08-23 | v0.8.2 | 吃喝玩乐页进入即定位：页面加载时调用 `wx.getLocation` 缓存经纬度，搜索/翻页/排序均携带 `longitude`/`latitude` 传美团搜索接口；离我最近排序定位未就绪时重新获取 | [3.2](#32-吃喝玩乐页-pageslife-) |
+| 2026-08-23 | v0.8.1 | 吃喝玩乐页搜索增强：搜索商品域名暂切本地 `http://localhost:3000` 调试；搜索结果上方新增排序栏（综合排序=1/价格升序=2/离我最近=6，传 `sortField`），离我最近排序自动定位传经纬度，`app.json` 增加 `scope.userLocation` 权限声明 | [3.2](#32-吃喝玩乐页-pageslife-) |
+| 2026-08-23 | v0.8.0 | 吃喝玩乐页新增美团商品搜索：顶部搜索栏，调 `/api/meituan/goods`（searchText/longitude/latitude/pageSize/pageNo/searchId）返回商品列表，卡片展示图片/标题/品牌/门店/售价/原价/佣金，上拉触底分页加载（回传 searchId，hasNext 控制） | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-23 | v0.7.1 | 活动服务全部迁移线上：吃喝玩乐 banner 与美团转链接口改走 `https://hgh.pangpai-car.com`，移除 localhost 配置与 app.js lifeApiBase | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-23 | v0.7.0 | 新增底部 tabBar（首页/吃喝玩乐）；新增吃喝玩乐页：调 /api/banner 展示活动卡片（图片+标题+子标题），点击调 /api/meituan/referral-link-by-act-id 获取转链，取 referralLinkMap key=4 小程序路径跳转美团外卖小程序；app.json 增加 navigateToMiniProgramAppIdList | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-10 | v0.6.4 | 需求文档同步代码：新增唯品会到平台表/映射表/设计规范；更新 3.1 首页描述（ensureLogin 按需登录、精选好物、链接转链支持拼多多+唯品会）；调整 4.1 通用约定为实际 base URL 和 GET 方式；修正 4.4 授权接口为 GET；更新 Phase 2 路线图状态 | - |
