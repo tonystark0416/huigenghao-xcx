@@ -562,6 +562,37 @@ async function convertLink(url, uid) {
   }
 }
 
+/**
+ * 获取唯品会商品推广链接（商品详情页「前往购买」用）
+ * GET /api/tranUrl?uid=xxx&pid=default_pid&source_url=xxx
+ *
+ * 成功返回: { code: 200, urls: { h5_url, weapp_url, weapp_short_link, deeplink_url } }
+ *
+ * @param {string} sourceUrl - 商品原始链接（详情接口的 destUrl）
+ * @param {string} uid - 当前用户 uid
+ * @returns {Promise<Object|null>} 原始响应，失败返回 null
+ */
+async function getTranUrl(sourceUrl, uid) {
+  if (!sourceUrl || !uid) return null;
+
+  try {
+    const query = [
+      `uid=${encodeURIComponent(uid)}`,
+      `pid=${encodeURIComponent('default_pid')}`,
+      `source_url=${encodeURIComponent(sourceUrl)}`,
+    ].join('&');
+
+    const url = `${BASE_URL}/api/tranUrl?${query}`;
+    console.log('[API] getTranUrl 请求:', url);
+    const result = await request(url);
+    console.log('[API] getTranUrl 响应:', JSON.stringify(result));
+    return result;
+  } catch (err) {
+    console.warn('[API] getTranUrl 失败:', err.message);
+    return null;
+  }
+}
+
 // ==================== 吃喝玩乐 Banner ====================
 
 /**
@@ -601,6 +632,24 @@ async function getMeituanReferralLink(actId) {
   }
 }
 
+/**
+ * 获取美团商品推广链接（referralLinkMap 中 key=4 为小程序路径）
+ * GET /api/meituan/referral-link-by-goods-id?productViewSign=xxx
+ * @param {string} productViewSign - 商品推广标识（搜索列表项的 productViewSign 字段）
+ * @returns {Promise<Object|null>} 转链结果
+ */
+async function getMeituanGoodsReferralLink(productViewSign) {
+  try {
+    const url = `${BASE_URL}/api/meituan/referral-link-by-goods-id?productViewSign=${encodeURIComponent(productViewSign)}`;
+    const result = await request(url);
+    console.log('[API] getMeituanGoodsReferralLink 响应:', JSON.stringify(result));
+    return result;
+  } catch (err) {
+    console.warn('[API] getMeituanGoodsReferralLink 失败:', err.message);
+    return null;
+  }
+}
+
 // ==================== 吃喝玩乐商品搜索 ====================
 
 /**
@@ -614,6 +663,7 @@ async function getMeituanReferralLink(actId) {
  *   couponPackDetail.saleVolume    → sales       (销量文案)
  *   couponPackDetail.categoryName  → category    (分类)
  *   couponPackDetail.skuViewId     → skuViewId   (商品标识)
+ *   couponPackDetail.productViewSign → productViewSign (商品推广标识，点击转链用)
  *   brandInfo.brandName            → brandName   (品牌)
  *   brandInfo.brandLogoUrl         → brandLogo   (品牌logo)
  *   commissionInfo.commission      → rebate      (佣金)
@@ -629,6 +679,7 @@ function mapMeituanGoods(item) {
 
   return {
     skuViewId: coupon.skuViewId || '',
+    productViewSign: coupon.productViewSign || '',
     title: coupon.name || '',
     image: coupon.headUrl || '',
     price: coupon.sellPrice || '',
@@ -714,9 +765,11 @@ module.exports = {
   checkAuth,
   genAuthUrl,
   convertLink,
+  getTranUrl,
   detectPlatform,
   getBanners,
   getMeituanReferralLink,
+  getMeituanGoodsReferralLink,
   searchMeituanGoods,
   setUserConfig,
   PLATFORM_NAMES,

@@ -72,6 +72,9 @@
         wx:for="{{goodsList}}"
         wx:key="skuViewId"
         data-index="{{index}}"
+        data-sign="{{item.productViewSign}}"
+        bindtap="onGoodsTap"
+        hover-class="goods-card-hover"
       >
         <image
           class="goods-img"

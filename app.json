@@ -31,7 +31,8 @@
     ]
   },
   "navigateToMiniProgramAppIdList": [
-    "wxde8ac0a21135c07d"
+    "wxde8ac0a21135c07d",
+    "wxe9714e742209d35f"
   ],
   "permission": {
     "scope.userFuzzyLocation": {

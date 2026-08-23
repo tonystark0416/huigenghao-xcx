@@ -1,5 +1,8 @@
 // pages/goods/goods.js
-const { getProductDetail } = require('../../utils/api');
+const { getProductDetail, getTranUrl } = require('../../utils/api');
+
+// 唯品会小程序 appId
+const VIP_APP_ID = 'wxe9714e742209d35f';
 
 Component({
   properties: {
@@ -40,6 +43,9 @@ Component({
   methods: {
     async loadDetail(goodsId) {
       if (!goodsId) return;
+      // 防重复请求：observer 与 attached 可能都会触发加载，同一商品只请求一次
+      if (this._loadingGoodsId === goodsId) return;
+      this._loadingGoodsId = goodsId;
 
       this.setData({ loading: true });
 
@@ -58,22 +64,56 @@ Component({
         console.error('获取商品详情失败:', err);
         this.setData({ loading: false });
         wx.showToast({ title: '网络异常', icon: 'none' });
+      } finally {
+        this._loadingGoodsId = '';
       }
     },
 
-    // 复制链接
-    onCopyLink() {
+    // 前往购买：实时请求转链接口，获取 weapp_url 跳转唯品会小程序
+    async onBuyTap() {
       const { goods } = this.data;
       if (!goods || !goods.destUrl) {
         wx.showToast({ title: '暂无购买链接', icon: 'none' });
         return;
       }
-      wx.setClipboardData({
-        data: goods.destUrl,
-        success: () => {
-          wx.showToast({ title: '链接已复制，请打开浏览器购买', icon: 'none', duration: 2000 });
-        },
-      });
+      if (this._buying) return;
+      this._buying = true;
+
+      const uid = getApp().globalData.userId || getApp().globalData.openid || '';
+      if (!uid) {
+        this._buying = false;
+        wx.showToast({ title: '请先登录', icon: 'none' });
+        return;
+      }
+
+      wx.showLoading({ title: '获取推广链接...', mask: true });
+
+      try {
+        const res = await getTranUrl(goods.destUrl, uid);
+        wx.hideLoading();
+        this._buying = false;
+
+        if (res && res.code === 200 && res.urls && res.urls.weapp_url) {
+          const weappUrl = res.urls.weapp_url;
+          console.log('[Goods] 唯品会小程序路径:', weappUrl);
+          wx.navigateToMiniProgram({
+            appId: VIP_APP_ID,
+            path: weappUrl,
+            fail: (err) => {
+              console.error('[Goods] 跳转唯品会小程序失败:', err);
+              wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+            },
+          });
+        } else {
+          console.warn('[Goods] 未获取到 weapp_url:', res);
+          wx.showToast({ title: '获取推广链接失败', icon: 'none' });
+        }
+      } catch (err) {
+        wx.hideLoading();
+        this._buying = false;
+        console.error('[Goods] 获取推广链接异常:', err);
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      }
     },
   },
 });

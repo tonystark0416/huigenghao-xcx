@@ -22,8 +22,8 @@
           <text wx:if="{{goods.discount}}" class="discount-tag">{{goods.discount * 10}}折</text>
         </view>
 
-        <!-- 返利信息 -->
-        <view class="rebate-row">
+        <!-- 返利信息（暂隐藏） -->
+        <view wx:if="{{false}}" class="rebate-row">
           <text class="rebate-label">预估返利</text>
           <text class="rebate-value">¥{{goods.rebate}}</text>
           <text wx:if="{{goods.rebateRate}}" class="rebate-rate">(返{{goods.rebateRate}}%)</text>
@@ -63,11 +63,12 @@
 
     <!-- 底部操作栏 -->
     <view class="bottom-bar">
-      <view class="bottom-rebate">
+      <!-- 底部返利（暂隐藏） -->
+      <view wx:if="{{false}}" class="bottom-rebate">
         <text class="bottom-rebate-label">返利</text>
         <text class="bottom-rebate-value">¥{{goods.rebate}}</text>
       </view>
-      <button class="buy-btn" bindtap="onCopyLink">复制链接去购买</button>
+      <button class="buy-btn" bindtap="onBuyTap">前往购买</button>
     </view>
   </block>
 

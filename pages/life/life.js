@@ -26,6 +26,7 @@ Component({
     searchId: '',
     loadMoreLoading: false,
     empty: false,
+    goodsJumping: false,
     // 排序
     sortOptions: [
       { label: '综合排序', value: SORT_COMPREHENSIVE },
@@ -260,6 +261,47 @@ Component({
     onGoodsImageError(e) {
       const { index } = e.currentTarget.dataset;
       console.error(`[Life] 商品第${index + 1}张图片加载失败:`, e.detail);
+    },
+
+    // 点击商品卡片：实时获取推广链接并跳转美团小程序
+    async onGoodsTap(e) {
+      const { sign } = e.currentTarget.dataset;
+      if (!sign) {
+        wx.showToast({ title: '商品信息缺失', icon: 'none' });
+        return;
+      }
+      if (this.data.goodsJumping) return;
+      this.setData({ goodsJumping: true });
+
+      wx.showLoading({ title: '获取推广链接...', mask: true });
+      const res = await api.getMeituanGoodsReferralLink(sign);
+      wx.hideLoading();
+      this.setData({ goodsJumping: false });
+
+      if (!res || !res.success || !res.data || !res.data.referralLinkMap) {
+        console.error('[Life] 商品转链失败:', res);
+        wx.showToast({ title: '获取推广链接失败，请稍后重试', icon: 'none' });
+        return;
+      }
+
+      const miniProgramPath = res.data.referralLinkMap[MINI_PROGRAM_LINK_KEY];
+      if (!miniProgramPath) {
+        wx.showToast({ title: '该商品暂不支持跳转', icon: 'none' });
+        return;
+      }
+
+      console.log('[Life] 跳转美团小程序, 商品推广路径:', miniProgramPath);
+      wx.navigateToMiniProgram({
+        appId: MEITUAN_APP_ID,
+        path: miniProgramPath,
+        success: () => {
+          console.log('[Life] 商品跳转成功');
+        },
+        fail: (err) => {
+          console.error('[Life] 商品跳转失败:', err);
+          wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+        },
+      });
     },
   },
 });
