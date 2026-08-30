@@ -136,7 +136,7 @@
     <view class="login-title">欢迎使用惠更好</view>
     <view class="login-desc">为了能体验完整的服务，请您进行登录</view>
     <button class="login-phone-btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
-      微信手机号快捷登录
+      手机号快捷登录
     </button>
     <view class="login-skip" bindtap="closeLoginModal">暂不登录</view>
   </view>

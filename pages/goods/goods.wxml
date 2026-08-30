@@ -77,4 +77,17 @@
       <text class="loading-text">商品信息获取失败</text>
     </view>
   </block>
+
+  <!-- 手机号登录弹窗（前往购买需登录获取 uid） -->
+  <view class="login-modal" wx:if="{{showLoginModal}}" catchtouchmove="noop">
+    <view class="login-mask" bindtap="closeLoginModal"></view>
+    <view class="login-dialog">
+      <view class="login-title">欢迎使用惠更好</view>
+      <view class="login-desc">购买前需要登录，请授权手机号</view>
+      <button class="login-phone-btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
+        手机号快捷登录
+      </button>
+      <view class="login-skip" bindtap="closeLoginModal">暂不登录</view>
+    </view>
+  </view>
 </view>

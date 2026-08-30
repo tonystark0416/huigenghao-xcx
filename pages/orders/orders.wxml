@@ -1,0 +1,78 @@
+<view class="orders-page">
+
+  <!-- 加载中 -->
+  <view class="loading-container" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-container" wx:elif="{{empty}}">
+    <view class="empty-icon">📦</view>
+    <text class="empty-text">暂无订单</text>
+    <view class="retry-btn" bindtap="onRetryTap">刷新</view>
+  </view>
+
+  <!-- 订单列表 -->
+  <view class="order-list" wx:else>
+    <view
+      class="order-card"
+      wx:for="{{orderList}}"
+      wx:key="id"
+    >
+      <!-- 卡片头：订单号 + 状态 -->
+      <view class="order-card-header">
+        <text class="order-sn">订单号 {{item.orderSn}}</text>
+        <text class="order-status">{{item.statusText}}</text>
+      </view>
+
+      <!-- 卡片体：商品图 + 信息 -->
+      <view class="order-card-body">
+        <image
+          class="order-goods-img"
+          src="{{item.goodsImgUrl}}"
+          mode="aspectFill"
+          lazy-load="{{true}}"
+        />
+        <view class="order-info">
+          <text class="order-goods-name">{{item.goodsName}}</text>
+          <text class="order-platform">{{item.platformText}}</text>
+          <text class="order-time">下单时间 {{item.createTimeText}}</text>
+        </view>
+      </view>
+
+      <!-- 卡片尾：金额 + 佣金 -->
+      <view class="order-card-footer">
+        <view class="order-amount">
+          <text class="order-amount-label">实付</text>
+          <text class="order-amount-value">¥{{item.orderAmount}}</text>
+        </view>
+        <view class="order-commission">
+          <text class="order-commission-label">预计返利</text>
+          <text class="order-commission-value">¥{{item.commission}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{loadMoreLoading}}">
+      <text>加载中...</text>
+    </view>
+    <view class="load-more" wx:elif="{{!hasMore && orderList.length > 0}}">
+      <text>没有更多了</text>
+    </view>
+  </view>
+
+  <!-- 手机号登录弹窗 -->
+  <view class="login-modal" wx:if="{{showLoginModal}}" catchtouchmove="noop">
+    <view class="login-mask" bindtap="closeLoginModal"></view>
+    <view class="login-dialog">
+      <view class="login-title">欢迎使用惠更好</view>
+      <view class="login-desc">登录后即可查看我的订单</view>
+      <button class="login-phone-btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
+        手机号快捷登录
+      </button>
+      <view class="login-skip" bindtap="closeLoginModal">暂不登录</view>
+    </view>
+  </view>
+
+</view>

@@ -466,17 +466,16 @@ Component({
     },
 
     /**
-     * 点击商品
+     * 点击商品，直接跳转商品详情（不做强制登录校验）
      */
     onGoodsTap(e) {
       const { id } = e.currentTarget.dataset;
       if (!id) return;
-      if (!this.ensureLogin(() => this._doGoodsTap(id))) return;
       this._doGoodsTap(id);
     },
 
     /**
-     * 商品点击核心逻辑（登录后执行）
+     * 商品点击核心逻辑
      */
     _doGoodsTap(id) {
       wx.navigateTo({ url: `/pages/goods/goods?id=${id}` });
@@ -484,8 +483,10 @@ Component({
 
     // ==================== 其他 ====================
 
+    /**
+     * 进入搜索页面（不做强制登录校验）
+     */
     goToSearch() {
-      if (!this.ensureLogin(() => this.goToSearch())) return;
       wx.navigateTo({
         url: '/pages/search/search',
       });

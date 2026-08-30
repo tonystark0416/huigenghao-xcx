@@ -1,7 +1,7 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.8.6  
-> 最后更新：2026-08-23
+> 多平台 CPS 返利小程序 | 版本 v0.9.0  
+> 最后更新：2026-08-30
 
 ---
 
@@ -73,6 +73,7 @@ huigenghao/
 │   ├── index/              # 首页（入口 + 平台入口 + 精选好物 + 链接转链）
 │   ├── search/             # 商品搜索列表页
 │   ├── goods/              # 商品详情页
+│   ├── orders/             # 我的订单（底部 tab）
 │   └── logs/               # 启动日志（调试用）
 ├── components/
 │   └── navigation-bar/     # 通用自定义导航栏
@@ -263,15 +264,24 @@ huigenghao/
 
 ---
 
-### 3.6 订单/返利记录 (`pages/orders/`)
+### 3.6 我的订单 (`pages/orders/`)
 
-**状态**：🔜 待开发
+**状态**：✅ 已完成基础版本（v0.9.0）
 
-**计划功能**：
-- [ ] 订单列表（所有平台汇总）
-- [ ] 订单状态筛选（待付款/已付款/已结算/已失效）
-- [ ] 平台筛选
-- [ ] 每笔订单显示：商品图、标题、下单时间、金额、返利状态
+**功能描述**：
+- 底部第三个 tab，标题「我的订单」，图标为订单/收据线性风格（`images/tabbar/order.png` / `order-active.png`）
+- 进入页面先校验登录态：未登录（`needPhoneLogin && !isLogin` 或无 uid）→ 弹出手机号快捷登录弹窗；已登录 → 自动加载订单
+- 订单列表：调用 `GET https://hgh.pangpai-car.com/api/order/getList`，入参 `uid`（当前用户 uid）与 `page`（翻页查询，从 1 开始）
+- 订单卡片渲染：商品图（`goods_img_url`）、商品名（`goods_name`）、平台标签（`platform`，如 vip=唯品会）、订单号（`order_sn`）、订单状态（`status`，0=已失效/1=待结算/2=已结算）、实付金额（`order_amount`）、预计返利（`commission`）、下单时间（`create_time`）
+- 下单时间格式化为 `2026/8/20 13:22:23`（月/日不补零，时分秒补零）
+- 上拉触底加载下一页（`totalPages` 判断是否还有更多），空列表展示空状态 + 刷新按钮
+- 登录成功后自动重新加载订单列表
+
+**接口**（统一走线上域名 `https://hgh.pangpai-car.com`）：
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/order/getList?uid=xxx&page=1` | GET | 获取当前用户订单列表，返回 `{ list, page, pageSize, total, totalPages }`，`list[].create_time` 为毫秒时间戳 |
 
 ---
 
@@ -427,7 +437,7 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 | 接口 | 路径 | 说明 | 状态 |
 |------|------|------|------|
 | 用户信息 | `GET /api/user/info` | 获取用户信息和返利汇总 | 🔜 |
-| 订单列表 | `GET /api/orders` | 查询订单与返利记录 | 🔜 |
+| 订单列表 | `GET /api/order/getList?uid=xxx&page=1` | 查询订单与返利记录（已实现，见 [3.6](#36-我的订单-pagesorders-)） | ✅ |
 | 提现 | `POST /api/withdraw` | 申请提现 | 🔜 |
 
 ---
@@ -667,7 +677,7 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 |------|------|------|
 | 微信登录 | 静默登录 + Token 管理 | ✅ |
 | 个人中心 | 用户信息、收益展示 | 🔜 |
-| 订单列表 | 订单与返利状态查询 | 🔜 |
+| 订单列表 | 订单与返利状态查询（底部 tab「我的订单」） | ✅ |
 | 提现功能 | 提现申请与记录 | 🔜 |
 
 ### Phase 4：体验增强 🔜
@@ -685,6 +695,7 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-08-30 | v0.9.0 | 新增底部 tab「我的订单」：新增 `pages/orders/` 页面，未登录（无 uid）弹出手机号快捷登录弹窗，已登录调 `GET /api/order/getList?uid=xxx&page=1` 分页加载订单，渲染订单卡片（商品图/名称/平台/订单号/状态/实付/返利/下单时间），`create_time` 格式化为 `2026/8/20 13:22:23`；设计并生成 tabBar 图标（order.png/order-active.png）；`app.json` 注册页面与 tabBar 项；api.js 新增 `getOrderList` | [3.6](#36-我的订单-pagesorders-) |
 | 2026-08-23 | v0.8.6 | 点击搜索商品卡片实时获取推广链接：搜索列表项映射 `productViewSign`，点击调 `/api/meituan/referral-link-by-goods-id?productViewSign=xxx`，取 `referralLinkMap` key=4 小程序路径跳转美团 | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-23 | v0.8.5 | 美团商品搜索接口域名从本地 `http://localhost:3000` 切回线上 `https://hgh.pangpai-car.com`（后端已发布） | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-23 | v0.8.4 | 移除 `wx.getLocation` 降级逻辑（该接口平台审核中），仅使用 `wx.getFuzzyLocation`；`requiredPrivateInfos` 只保留 `getFuzzyLocation` | [3.2](#32-吃喝玩乐页-pageslife-) |

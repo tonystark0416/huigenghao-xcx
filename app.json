@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/life/life",
+    "pages/orders/orders",
     "pages/logs/logs",
     "pages/search/search",
     "pages/goods/goods"
@@ -27,6 +28,12 @@
         "text": "吃喝玩乐",
         "iconPath": "images/tabbar/life.png",
         "selectedIconPath": "images/tabbar/life-active.png"
+      },
+      {
+        "pagePath": "pages/orders/orders",
+        "text": "我的订单",
+        "iconPath": "images/tabbar/order.png",
+        "selectedIconPath": "images/tabbar/order-active.png"
       }
     ]
   },

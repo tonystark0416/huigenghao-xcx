@@ -757,6 +757,74 @@ async function searchMeituanGoods({ searchText = '', longitude = '', latitude = 
   }
 }
 
+// ==================== 订单列表 ====================
+
+/**
+ * 将订单接口数据映射为页面展示结构
+ * @param {Object} item - 订单原始数据
+ */
+function mapOrder(item) {
+  return {
+    id: item.id || '',
+    orderSn: item.order_sn || '',
+    uid: item.uid || '',
+    status: item.status,
+    platform: item.platform || '',
+    orderAmount: item.order_amount || '0',
+    commission: item.commission || '0',
+    goodsId: item.goods_id || '',
+    goodsName: item.goods_name || '',
+    goodsImgUrl: item.goods_img_url || '',
+    createTime: item.create_time || '',
+    updateTime: item.update_time || '',
+  };
+}
+
+/**
+ * 获取我的订单列表
+ *
+ * 接口: GET ${BASE_URL}/api/order/getList
+ * 请求参数 (query):
+ *   - uid  {string|number} 当前用户 uid
+ *   - page {number}        页码，从 1 开始
+ *
+ * 成功返回: { list: [...], page, pageSize, total, totalPages }
+ *
+ * @param {string|number} uid - 当前用户 uid
+ * @param {number} [page=1] - 页码，从 1 开始
+ * @returns {Promise<{list: Array, page: number, total: number, totalPages: number} | null>}
+ */
+async function getOrderList(uid, page = 1) {
+  if (!uid) return null;
+
+  try {
+    const query = [
+      `uid=${encodeURIComponent(uid)}`,
+      `page=${page}`,
+    ].join('&');
+
+    const url = `${BASE_URL}/api/order/getList?${query}`;
+    console.log('[API] getOrderList 请求URL:', url);
+    const result = await request(url);
+    console.log('[API] getOrderList 响应:', JSON.stringify(result));
+
+    if (!result || !Array.isArray(result.list)) {
+      console.warn('[API] getOrderList 返回异常:', result);
+      return { list: [], page: 1, total: 0, totalPages: 0 };
+    }
+
+    return {
+      list: result.list.map(mapOrder),
+      page: parseInt(result.page, 10) || page,
+      total: parseInt(result.total, 10) || 0,
+      totalPages: parseInt(result.totalPages, 10) || 0,
+    };
+  } catch (err) {
+    console.warn('[API] getOrderList 失败:', err.message);
+    return { list: [], page: 1, total: 0, totalPages: 0 };
+  }
+}
+
 module.exports = {
   searchProducts,
   getProductDetail,
@@ -771,6 +839,7 @@ module.exports = {
   getMeituanReferralLink,
   getMeituanGoodsReferralLink,
   searchMeituanGoods,
+  getOrderList,
   setUserConfig,
   PLATFORM_NAMES,
 };
