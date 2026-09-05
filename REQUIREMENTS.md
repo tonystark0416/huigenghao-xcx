@@ -1,7 +1,7 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.9.0  
-> 最后更新：2026-08-30
+> 多平台 CPS 返利小程序 | 版本 v0.10.0  
+> 最后更新：2026-09-06
 
 ---
 
@@ -93,8 +93,9 @@ huigenghao/
 **功能描述**：
 
 - **登录流程**：采用按需拦截模式（`ensureLogin`），打开小程序不自动弹登录窗。用户执行搜索、转链、点击平台入口或商品时触发登录检测，弹窗文案「欢迎使用惠更好，为了能体验完整的服务，请您进行登录」。登录成功后自动重试之前触发的操作
-- 搜索入口：点击模拟搜索框跳转至商品搜索页
-- 导航栏标题「惠更好」，无返回按钮
+- **顶部布局**：移除独立标题导航栏，页面内容从屏幕最顶开始；搜索框置顶固定（`position: sticky`），头部整块主色 `#81D8CF` 背景（无渐变，含状态栏区域），顶部间距动态读取胶囊按钮上边缘使其与搜索框同高、水平对齐，右侧自动避让胶囊宽度，页面滑动时头部固定不随内容滚动
+- 搜索入口：点击置顶搜索框（占位文案「搜索全网好物」）跳转商品搜索页
+- 转链按钮文案「查找专属优惠」（转换中显示「正在转换...」）；下方「粘贴链接」「平台入口」区块收窄为主色系圆角留白卡片
 - **精选好物**：调用 `GET /api/goodsList` 接口，双列瀑布流展示推荐商品，点击卡片跳转商品详情页
 - **链接转换**：支持粘贴拼多多和唯品会商品链接，调 `GET /api/tranUrl` 获取推广链接（h5_url/weapp_url/deeplink_url），每个链接独立可复制
 - **第三方平台跳转**：点击平台 icon 自动校验授权状态，已授权直跳对应小程序首页，未授权先获取授权链接再跳转
@@ -144,20 +145,21 @@ huigenghao/
 - 活动 banner 列表常驻显示在搜索栏下方；搜索后商品结果列表展示在 banner 下方，清空搜索词后仅保留 banner
 - 进入页面调用 `GET https://hgh.pangpai-car.com/api/banner` 获取活动 banner 列表
 - 按 `sort` 降序展示活动卡片：图片（`banner_img_url`）+ 标题（`title`）+ 子标题（`sub_text`）+ 箭头
-- 点击卡片：调用 `GET /api/meituan/referral-link-by-act-id?actId={extra_id}` 获取转链
+- 点击卡片：调用 `GET /api/meituan/referral-link-by-act-id?actId={extra_id}&uid={uid}` 获取转链（转链依赖当前登录用户 uid）
 - 从响应 `referralLinkMap` 中取 key=4 的小程序路径，调用 `wx.navigateToMiniProgram` 跳转美团外卖小程序（appId: `wxde8ac0a21135c07d`）
 - 搜索商品：调用 `GET /api/meituan/goods`，返回商品列表，卡片展示图片（`headUrl`）、标题（`name`）、品牌、门店、销量、售价（`sellPrice`）、原价（`originalPrice`）、佣金（`commissionInfo.commission`）
 - 点击商品卡片：用该商品的 `couponPackDetail.productViewSign` 实时调用 `GET /api/meituan/referral-link-by-goods-id?productViewSign=xxx` 获取推广链接，取响应 `referralLinkMap` 中 key=4 的小程序路径，调用 `wx.navigateToMiniProgram` 跳转美团小程序
 - 搜索结果上方提供排序栏：综合排序（`sortField=1`）、价格升序（`sortField=2`）、离我最近（`sortField=6`），切换排序后重新搜索第一页
 - 进入页面时即调用 `wx.getFuzzyLocation`（模糊定位，type=gcj02）获取定位并缓存到 data，控制台打印经纬度；搜索第一页、翻页、切换排序均携带缓存的 `longitude`/`latitude` 传给接口；「离我最近」排序时若定位尚未就绪则重新获取一次，定位失败时提示并继续按空经纬度请求
 - 商品列表分页：上拉触底加载下一页，翻页回传上一页返回的 `searchId`，`hasNext=false` 时停止加载
+- **登录拦截**：进入页面即检查登录态，`needPhoneLogin && !isLogin` 时弹出手机号快捷登录弹窗（标题「欢迎使用惠更好」，描述「登录后即可获取推广链接，请先登录」，支持「暂不登录」跳过）；登录成功同步真实 uid 并自动重试此前被拦截的操作
 
 **接口**（统一走线上域名 `https://hgh.pangpai-car.com`）：
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `/api/banner` | GET | 获取活动 banner 列表 |
-| `/api/meituan/referral-link-by-act-id?actId=xxx` | GET | 获取活动转链，`referralLinkMap` 中 key=4 为小程序路径 |
+| `/api/meituan/referral-link-by-act-id?actId=xxx&uid=xxx` | GET | 获取活动转链（带当前登录 uid），`referralLinkMap` 中 key=4 为小程序路径 |
 | `/api/meituan/referral-link-by-goods-id?productViewSign=xxx` | GET | 获取商品推广链接（点击搜索商品卡片时调用），`referralLinkMap` 中 key=4 为小程序路径 |
 | `/api/meituan/goods?searchText=xxx&longitude=&latitude=&pageSize=20&pageNo=1&searchId=&sortField=` | GET | 搜索美团吃喝玩乐商品（线上域名 `https://hgh.pangpai-car.com`）；参数 `sortField`：1=综合排序、2=价格升序、6=离我最近；返回 `{ success, data: { code, data: [...], hasNext, searchId } }`，`data[].couponPackDetail` 为商品信息、`brandInfo` 为品牌、`commissionInfo` 为佣金、`deliverablePoiInfo` 为门店/距离 |
 
@@ -177,7 +179,7 @@ huigenghao/
 | 一键清空 | 输入框右侧 × 按钮清空内容 | ✅ |
 | 搜索触发 | 点击「搜索」按钮或键盘确认触发，**输入时不自动搜索** | ✅ |
 | 搜索防抖 | ~~输入变化后 400ms 防抖延迟~~ → 已改为手动搜索 | ❌ 已废弃 |
-| 聚焦态 | 聚焦时搜索框边框高亮为橙色 | ✅ |
+| 聚焦态 | 搜索框白底 + 主色描边 + 光晕，聚焦时边框/光晕高亮为主青色 `#0ea294`；「搜索」按钮为白底黑字黑框胶囊 | ✅ |
 
 #### 3.2.2 搜索历史
 
@@ -208,9 +210,9 @@ huigenghao/
 | 商品图片 | 主图展示，宽高比 1:1，懒加载 | ✅ |
 | 平台标签 | 左上角品牌色标签，标出所属平台 | ✅ |
 | 商品标题 | 最多显示 2 行，超出省略号 | ✅ |
-| 券后价 | 大号橙色字体突出显示 | ✅ |
+| 券后价 | 大号主色（`#0ea294`）字体突出显示 | ✅ |
 | 原价 | 灰色删除线字号较小 | ✅ |
-| 返利金额 | 橙色标签样式「返¥XX.XX」 | ✅ |
+| 返利金额 | 主色系标签「返¥XX.XX」（浅青底、深青字） | ✅ |
 | 销量 | 显示已售件数 | ✅ |
 | 点击跳转 | 预留 `onProductTap`，目标路径 `/pages/goods/goods` | 🚧 预留 |
 
@@ -236,16 +238,17 @@ huigenghao/
 **状态**：✅ 基础版本完成
 
 **功能描述**：
-- 商品主图大图展示
-- 券后价（大号橙色）+ 原价（删除线）+ 折扣标签
-- 返利信息（金额 + 比例）
-- 商品完整标题
-- 标签列表（品牌色底色）
-- 品牌 / 店铺 / 分类 / 销量等元信息
-- 底部栏：返利金额 + 「复制链接去购买」按钮（复制 destUrl 到剪贴板）
+- **顶部布局**：去除顶部导航栏，商品主图从屏幕最顶展示；左上角悬浮半透明圆形返回按钮（SVG 箭头图标），位置与右上角胶囊垂直居中对齐（`initNavBackStyle` 读取胶囊矩形动态计算 top），点击返回上一页（失败时回首页）
+- **主图轮播**：`images` 多图时启用轮播（圆点指示、自动播放、循环），单图降级为普通大图；点击图片调用 `wx.previewImage` 全屏预览、支持左右切换
+- **价格**：券后价大号主色（`#0ea294`）+ 原价删除线；价格计算方式文案 `priceDesc`（如「¥167-超V折扣 ¥3」）以「-」拆为两段展示于浅青底胶囊内，后半段高亮为强调色
+- **详情长图**：`detailImages` 按 `widthFix` 顺序拼接展示（懒加载），点击可全屏预览切换
+- 返利信息（金额 + 比例）、完整标题、主色系胶囊标签、元信息展示
+- 底部栏：返利金额 + 「立即购买」白底黑字黑框按钮，点击实时调按商品 ID 转链接口获取 `urls.weapp_url` 后跳转唯品会小程序
+- 登录成功（手机号快捷登录）后同步调用 `setUserConfig({ uid })`
 
 **API**：`GET /api/goods?goodsId=xxx&chanTag=xxx&openid=xxx`
-- 适配函数：`adaptGoodsDetail` 负责 `data.result` → 内部统一格式
+- 适配函数：`adaptGoodsDetail` 适配真实接口新结构 `{ result: true, data: { goodsId, goodsName, images, detailImages, prices, commission, tags, url } }` → 内部统一格式
+- 按商品 ID 转链：`GET /api/tranUrl/genUrlByGoodsId?platform=vip&goodsId=xxx&uid=xxx&pid=xxx`，返回 `{ result: true, urls: { weapp_url } }`
 - Mock 兜底：`mockGoodsDetail`
 
 ---
@@ -538,18 +541,19 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 字段 | 类型 | 来源 |
 |------|------|------|
-| id | string | result.goodsId |
-| title | string | result.goodsName |
-| image | string | result.goodsMainPicture |
-| price | number | result.vipPrice / goodsPromotionInfo.salePrice |
-| originalPrice | number | result.marketPrice |
-| rebate | number | result.commission |
-| rebateRate | number | result.commissionRate |
-| brandName | string | result.brandName |
-| storeName | string | result.storeInfo.storeName |
-| sales | string | result.productSales |
-| tags | string[] | result.tagNames |
-| destUrl | string | result.destUrl |
+| id | string | data.goodsId |
+| title | string | data.goodsName |
+| image / images | string / string[] | data.images（首张为主图，多图用于轮播） |
+| detailImages | string[] | data.detailImages（详情长图列表） |
+| price | number | data.prices.salePrice |
+| originalPrice | number | data.prices.marketPrice |
+| priceDesc | string | data.prices.priceDesc（价格计算方式文案） |
+| rebate | number | data.commission.amount |
+| rebateRate | number | data.commission.rate |
+| discount | number | 内部按 salePrice / marketPrice 计算 |
+| tags | string[] | data.tags |
+| platform | string | data.platform |
+| destUrl | string | data.url（用于按商品 ID 转链） |
 
 ---
 
@@ -605,19 +609,15 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 颜色 | 色值 | 用途 |
 |------|------|------|
-| 品牌主色 | `#ff5000` | 搜索按钮、价格、返利标签、下划线 |
-| 品牌渐变 | `#ff5000` → `#ff6b35` | 首页入口按钮 |
-| 淘宝色 | `#ff5000` | 淘宝平台标签 / Tab 下划线 |
-| 京东色 | `#c91623` | 京东平台标签 / Tab 下划线 |
-| 拼多多色 | `#e02e24` | 拼多多平台标签 / Tab 下划线 |
-| 唯品会色 | `#E4007F` | 唯品会平台标签 / Tab 下划线 |
-| 抖音色 | `#000000` | 抖音平台标签 / Tab 下划线 |
+| UI 主色 | `#81D8CF` | 顶部头部底色、搜索框描边、浅色高亮底（替代原橙色渐变系） |
+| UI 强调色 | `#0ea294` | 价格、返利、标签文字、订单状态、tab 选中、聚焦态（替代原 `#ff5000`/`#e02e24` 橙红系） |
 | 主文字 | `#333333` | 标题、主要信息 |
 | 次文字 | `#999999` | 辅助说明、历史标签 |
 | 辅助文字 | `#bbbbbb` | 占位符、弱化信息 |
 | 页面背景 | `#f5f5f5` | 整体背景 |
-| 卡片背景 | `#ffffff` | 商品卡片、面板 |
-| 搜索框背景 | `#f5f5f5` | 搜索输入框默认态 |
+| 卡片背景 | `#ffffff` | 商品卡片、面板（多收窄为 20rpx 圆角留白卡片） |
+| 搜索框 | `#ffffff` + 3rpx `#81D8CF` 描边 | 输入框默认态；聚焦切换 `#0ea294` 描边并加深光晕 |
+| 按钮默认 | 白底 `#fff` / 黑字 `#111` / 3rpx `#111` 边框 | 主按钮（登录、立即购买、搜索、加载更多、复制等），圆角胶囊 |
 
 ### 6.2 字体规范
 
@@ -695,6 +695,7 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-09-06 | v0.10.0 | **全站视觉换肤**：UI 主色由橙红系（`#ff5000`/`#e02e24`）改为青绿系（主色 `#81D8CF` + 强调 `#0ea294`）；主按钮统一为白底黑字黑框胶囊；搜索框白底+主色描边+光晕；价格/返利/状态/标签等强调文字全部换主色；tabBar 选中色同步 `#0ea294`。**首页头部重构**：移除顶部标题导航栏，搜索框置顶并固定（整块主色背景无渐变、与胶囊同高且水平对齐、右侧避让胶囊），占位文案「搜索全网好物」，转链按钮文案「查找专属优惠」，下方入口区块收窄为圆角留白卡片。**商品详情页升级**：适配真实详情接口新结构（`{result, data:{goodsId, goodsName, images, detailImages, prices, commission, tags, url}}`）；主图轮播+点击预览、详情长图展示+预览、价格计算方式 `priceDesc` 分段高亮；移除导航栏改悬浮返回按钮（与胶囊垂直对齐）；购买按钮实时调用按商品 ID 转链 `GET /api/tranUrl/genUrlByGoodsId` 获取 `weapp_url`。**用户 uid 真实化**：移除 Mock uid `mike004`，登录成功同步 `setUserConfig({ uid })`，美团活动转链接口带 uid。**吃喝玩乐页**：进入页面未登录弹出手机号快捷登录弹窗（可暂不登录跳过） | [3.1](#31-首页-pagesindex-) [3.2](#32-吃喝玩乐页-pageslife-) [3.3](#33-商品详情页-pagesgoods-) [6.1](#61-色彩系统) |
 | 2026-08-30 | v0.9.0 | 新增底部 tab「我的订单」：新增 `pages/orders/` 页面，未登录（无 uid）弹出手机号快捷登录弹窗，已登录调 `GET /api/order/getList?uid=xxx&page=1` 分页加载订单，渲染订单卡片（商品图/名称/平台/订单号/状态/实付/返利/下单时间），`create_time` 格式化为 `2026/8/20 13:22:23`；设计并生成 tabBar 图标（order.png/order-active.png）；`app.json` 注册页面与 tabBar 项；api.js 新增 `getOrderList` | [3.6](#36-我的订单-pagesorders-) |
 | 2026-08-23 | v0.8.6 | 点击搜索商品卡片实时获取推广链接：搜索列表项映射 `productViewSign`，点击调 `/api/meituan/referral-link-by-goods-id?productViewSign=xxx`，取 `referralLinkMap` key=4 小程序路径跳转美团 | [3.2](#32-吃喝玩乐页-pageslife-) |
 | 2026-08-23 | v0.8.5 | 美团商品搜索接口域名从本地 `http://localhost:3000` 切回线上 `https://hgh.pangpai-car.com`（后端已发布） | [3.2](#32-吃喝玩乐页-pageslife-) |

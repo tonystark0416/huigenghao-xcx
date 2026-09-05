@@ -1,12 +1,10 @@
 <!--index.wxml-->
-<navigation-bar title="惠更好" back="{{false}}" color="black" background="#FFF"></navigation-bar>
-
 <view class="page">
-  <!-- 顶部搜索栏 -->
-  <view class="search-bar" bindtap="goToSearch">
-    <view class="search-box">
+  <!-- 顶部搜索栏（置顶，为右上角胶囊按钮让位） -->
+  <view class="search-bar" bindtap="goToSearch" style="padding-top: {{navTopPad}}px;">
+    <view class="search-box" style="margin-right: {{capsuleGap}}px;">
       <text class="search-icon">🔍</text>
-      <text class="search-placeholder">搜索商品关键词</text>
+      <text class="search-placeholder">搜索全网好物</text>
     </view>
   </view>
 
@@ -24,7 +22,7 @@
       <view class="link-paste-btn" bindtap="onPasteLink">粘贴</view>
     </view>
     <view class="link-find-btn {{linkConverting ? 'btn-disabled' : ''}}" bindtap="onFindCoupon">
-      {{linkConverting ? '正在转换...' : '查找优惠'}}
+      {{linkConverting ? '正在转换...' : '查找专属优惠'}}
     </view>
   </view>
 

@@ -1,8 +1,11 @@
 // index.js
-const { getGoodsList, checkAuth, genAuthUrl, convertLink } = require('../../utils/api');
+const { getGoodsList, checkAuth, genAuthUrl, convertLink, setUserConfig } = require('../../utils/api');
 
 Component({
   data: {
+    // 置顶搜索栏避让参数
+    navTopPad: 20,
+    capsuleGap: 0,
     showLoginModal: false,
     showAuthModal: false,
     authPlatform: '',
@@ -29,6 +32,8 @@ Component({
 
   lifetimes: {
     attached() {
+      // 适配置顶搜索栏（状态栏高度、胶囊按钮右侧避让）
+      this.setNavTopLayout();
       // 加载首页商品列表
       this.loadGoodsList();
     },
@@ -41,6 +46,28 @@ Component({
   },
 
   methods: {
+    /**
+     * 计算置顶搜索栏的避让参数
+     * navTopPad：胶囊按钮上边缘到屏幕顶的距离（px），使搜索框顶边与胶囊齐平、水平对齐
+     * capsuleGap：右上角胶囊按钮宽度+右间距（px），使搜索框收窄且不被遮挡
+     */
+    setNavTopLayout() {
+      try {
+        const sysInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+        const menuRect = wx.getMenuButtonBoundingClientRect();
+        const statusBarHeight = (sysInfo && sysInfo.statusBarHeight) || 20;
+        let navTopPad = statusBarHeight;
+        let capsuleGap = 0;
+        if (sysInfo && menuRect && menuRect.top) {
+          navTopPad = menuRect.top;
+          capsuleGap = Math.max(0, sysInfo.windowWidth - menuRect.left + 8);
+        }
+        this.setData({ navTopPad, capsuleGap });
+      } catch (err) {
+        this.setData({ navTopPad: 20, capsuleGap: 0 });
+      }
+    },
+
     /**
      * 确保用户已登录，未登录则弹出登录弹窗并存储回调
      * @param {Function} callback - 登录成功后要执行的回调
@@ -146,6 +173,8 @@ Component({
           app.globalData.userInfo = (user.nickname || user.avatar) ? user : (data.userInfo || null);
           app.globalData.isLogin = true;
           app.globalData.needPhoneLogin = false;
+          // 同步用户 uid，供转链等接口使用
+          setUserConfig({ uid: app.globalData.userId });
 
           wx.setStorageSync('token', app.globalData.token);
           wx.setStorageSync('userId', app.globalData.userId);

@@ -16,9 +16,9 @@ const PLATFORM_NAMES = {
   douyin: '抖音',
 };
 
-// 用户标识，后续从登录态获取
+// 用户标识，登录成功后通过 setUserConfig 设置真实 uid
 let USER_CONFIG = {
-  uid: 'mike004',
+  uid: '',
   pid: 'mike0416',
   chanTag: 'default_pid',
   openid: 'default_openid',
@@ -266,36 +266,51 @@ async function searchProducts({ keyword = '', platform = 'all', page = 1, pageSi
 
 /**
  * 适配真实商品详情接口 → 内部统一格式
+ *
+ * 新接口返回结构:
+ *   { result: true, data: {
+ *       platform, goodsId, goodsName,
+ *       images: [], detailImages: [],
+ *       prices: { marketPrice, salePrice },
+ *       commission: { rate, amount },
+ *       tags: []
+ *   } }
  */
 function adaptGoodsDetail(rawData) {
-  if (!rawData || !rawData.success) return null;
+  if (!rawData || rawData.result !== true) return null;
 
-  const r = rawData.data && rawData.data.result;
-  if (!r) return null;
+  const d = rawData.data || {};
+  const prices = d.prices || {};
+  const commission = d.commission || {};
+  const images = Array.isArray(d.images) ? d.images.filter(Boolean) : [];
+  const detailImages = Array.isArray(d.detailImages) ? d.detailImages.filter(Boolean) : [];
 
-  const promo = r.goodsPromotionInfo || {};
+  const salePrice = parseFloat(prices.salePrice) || 0;
+  const marketPrice = parseFloat(prices.marketPrice) || 0;
 
   return {
     code: 0,
     data: {
-      id: r.goodsId || '',
-      title: r.goodsName || '',
-      shortTitle: r.shortTitle || '',
-      image: r.goodsMainPicture || r.goodsThumbUrl || '',
-      images: [r.goodsMainPicture, r.goodsThumbUrl].filter(Boolean),
-      price: parseFloat(promo.salePrice || r.vipPrice) || 0,
-      originalPrice: parseFloat(r.marketPrice) || 0,
-      rebate: parseFloat(r.commission) || 0,
-      rebateRate: parseFloat(r.commissionRate) || 0,
-      discount: parseFloat(r.discount) || 0,
-      brandName: r.brandName || '',
-      brandLogo: r.brandLogoFull || '',
-      storeName: (r.storeInfo && r.storeInfo.storeName) || '',
-      sales: r.productSales || '',
-      tags: r.tagNames || [],
-      categoryName: r.categoryName || '',
-      destUrl: r.destUrl || r.destUrlPc || '',
-      platform: 'vip',
+      id: d.goodsId || '',
+      title: d.goodsName || '',
+      shortTitle: d.goodsName || '',
+      image: images[0] || '',
+      images: images,
+      detailImages: detailImages,
+      price: salePrice,
+      originalPrice: marketPrice,
+      rebate: parseFloat(commission.amount) || 0,
+      rebateRate: parseFloat(commission.rate) || 0,
+      discount: marketPrice > 0 ? +(salePrice / marketPrice).toFixed(2) : 0,
+      brandName: d.brandName || '',
+      brandLogo: '',
+      storeName: '',
+      sales: '',
+      tags: Array.isArray(d.tags) ? d.tags : [],
+      categoryName: '',
+      destUrl: d.url || '', // 转链用的商品 URL
+      priceDesc: prices.priceDesc || '', // 价格计算方式文案
+      platform: d.platform || 'vip',
     },
   };
 }
@@ -314,8 +329,10 @@ function mockGoodsDetail(goodsId) {
           shortTitle: '示例商品',
           image: 'https://a.vpimg4.com/upload/merchandise/pdcvis/667296/2026/0409/170/74a66dfe-a895-4e99-85a9-4cdbaf9fc6c4.jpg',
           images: ['https://a.vpimg4.com/upload/merchandise/pdcvis/667296/2026/0409/170/74a66dfe-a895-4e99-85a9-4cdbaf9fc6c4.jpg'],
+          detailImages: [],
           price: 69.00,
           originalPrice: 139.00,
+          priceDesc: '¥139-优惠 ¥70',
           rebate: 2.07,
           rebateRate: 3,
           discount: 0.5,
@@ -335,17 +352,19 @@ function mockGoodsDetail(goodsId) {
 
 /**
  * 获取商品详情
- * 
- * 真实接口 (GET): http://hgh.pangpai-car.com/api/goods
+ *
+ * 真实接口 (GET): https://hgh.pangpai-car.com/api/goods/getDetail
  * 请求参数 (query):
  *   - goodsId  {string}  商品ID
- *   - chanTag  {string}  渠道标签
- *   - openid   {string}  用户openid
- * 
+ *   - pid      {string}  推广位 ID
+ *   - uid      {string}  当前用户 uid
+ *   - platform {string}  平台，如 vip
+ *
  * @param {string} goodsId - 商品ID
+ * @param {string} [platform='vip'] - 平台标识
  * @returns {Promise<{code: number, data: Object}>}
  */
-async function getProductDetail(goodsId) {
+async function getProductDetail(goodsId, platform = 'vip') {
   if (!goodsId) {
     return { code: -1, message: '缺少 goodsId' };
   }
@@ -356,12 +375,17 @@ async function getProductDetail(goodsId) {
 
   try {
     const query = [
-      `goodsId=${goodsId}`,
-      `chanTag=${USER_CONFIG.chanTag || 'default_pid'}`,
-      `openid=${USER_CONFIG.openid || 'default_openid'}`,
+      `goodsId=${encodeURIComponent(goodsId)}`,
+      `pid=${encodeURIComponent(USER_CONFIG.pid || '')}`,
+      `uid=${encodeURIComponent(USER_CONFIG.uid || '')}`,
+      `platform=${encodeURIComponent(platform)}`,
     ].join('&');
 
-    const rawData = await request(`${BASE_URL}/api/goods?${query}`);
+    const fullUrl = `${BASE_URL}/api/goods/getDetail?${query}`;
+    console.log('[API] getProductDetail 请求:', fullUrl);
+
+    const rawData = await request(fullUrl);
+    console.log('[API] getProductDetail 响应:', JSON.stringify(rawData));
     const result = adaptGoodsDetail(rawData);
 
     if (result) return result;
@@ -471,6 +495,9 @@ async function genAuthUrl(uid, platform, pid = THIRD_PID) {
 // ==================== 链接转换 ====================
 
 const TRAN_URL_PID = '43384525_317172887';
+
+// 唯品会商品推广位 ID（genUrlByGoodsId 默认使用）
+const GOODS_GEN_URL_PID = '123213';
 
 /**
  * 识别链接所属平台
@@ -593,6 +620,42 @@ async function getTranUrl(sourceUrl, uid) {
   }
 }
 
+/**
+ * 获取商品推广链接（按商品 ID，商品详情页「前往购买」用）
+ * GET /api/tranUrl/genUrlByGoodsId?platform=vip&goodsId=xxx&uid=xxx&pid=xxx
+ *
+ * 成功返回: { result: true, goodsId, urls: { h5_url, weapp_url, deeplink_url, command } }
+ *
+ * @param {Object} opts
+ * @param {string} opts.goodsId  - 商品 ID
+ * @param {string} [opts.platform='vip'] - 平台标识
+ * @param {string} [opts.uid]    - 当前用户 uid（默认取 USER_CONFIG.uid）
+ * @param {string} [opts.pid]    - 推广位 ID
+ * @returns {Promise<Object|null>} 原始响应，失败返回 null
+ */
+async function getGoodsTranUrlByGoodsId({ goodsId, platform = 'vip', uid = USER_CONFIG.uid, pid }) {
+  if (!goodsId || !uid) return null;
+  if (!pid) pid = GOODS_GEN_URL_PID;
+
+  try {
+    const query = [
+      `platform=${encodeURIComponent(platform)}`,
+      `goodsId=${encodeURIComponent(goodsId)}`,
+      `uid=${encodeURIComponent(uid)}`,
+      `pid=${encodeURIComponent(pid)}`,
+    ].join('&');
+
+    const url = `${BASE_URL}/api/tranUrl/genUrlByGoodsId?${query}`;
+    console.log('[API] getGoodsTranUrlByGoodsId 请求:', url);
+    const result = await request(url);
+    console.log('[API] getGoodsTranUrlByGoodsId 响应:', JSON.stringify(result));
+    return result;
+  } catch (err) {
+    console.warn('[API] getGoodsTranUrlByGoodsId 失败:', err.message);
+    return null;
+  }
+}
+
 // ==================== 吃喝玩乐 Banner ====================
 
 /**
@@ -616,13 +679,14 @@ async function getBanners() {
 
 /**
  * 获取美团活动转链（referralLinkMap 中 key=4 为小程序路径）
- * GET /api/meituan/referral-link-by-act-id?actId=xxx
+ * GET /api/meituan/referral-link-by-act-id?actId=xxx&uid=xxx
  * @param {string|number} actId - 活动 ID（banner 的 extra_id）
  * @returns {Promise<Object|null>} 转链结果
  */
 async function getMeituanReferralLink(actId) {
   try {
-    const url = `${BASE_URL}/api/meituan/referral-link-by-act-id?actId=${encodeURIComponent(actId)}`;
+    const url = `${BASE_URL}/api/meituan/referral-link-by-act-id?actId=${encodeURIComponent(actId)}&uid=${encodeURIComponent(USER_CONFIG.uid)}`;
+    console.log('[API] getMeituanReferralLink 请求:', url);
     const result = await request(url);
     console.log('[API] getMeituanReferralLink 响应:', JSON.stringify(result));
     return result;
@@ -834,6 +898,7 @@ module.exports = {
   genAuthUrl,
   convertLink,
   getTranUrl,
+  getGoodsTranUrlByGoodsId,
   detectPlatform,
   getBanners,
   getMeituanReferralLink,

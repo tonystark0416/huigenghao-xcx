@@ -1,5 +1,5 @@
 // pages/goods/goods.js
-const { getProductDetail, getTranUrl } = require('../../utils/api');
+const { getProductDetail, getGoodsTranUrlByGoodsId, setUserConfig } = require('../../utils/api');
 
 // 唯品会小程序 appId
 const VIP_APP_ID = 'wxe9714e742209d35f';
@@ -22,10 +22,14 @@ Component({
     loading: true,
     goods: null,
     showLoginModal: false,
+    // 悬浮返回按钮的 top 值（与胶囊垂直居中对齐）
+    navBackStyle: '',
   },
 
   lifetimes: {
     attached() {
+      // 悬浮返回按钮与胶囊对齐
+      this.initNavBackStyle();
       // 如果 attached 时 id 已有值，立即加载
       if (this.properties.id) {
         this.loadDetail(this.properties.id);
@@ -42,6 +46,28 @@ Component({
   },
 
   methods: {
+    /**
+     * 详情数据预处理：
+     * 将价格计算方式文案 priceDesc（如 "¥167-超V折扣 ¥3"）拆分为分段，
+     * 便于页面分段样式展示；无 priceDesc 时返回空数组。
+     */
+    _normalizeDetail(goods) {
+      if (!goods) return goods;
+      const desc = goods.priceDesc || '';
+      const parts = [];
+      if (desc) {
+        const dashIdx = desc.indexOf('-');
+        if (dashIdx > 0 && dashIdx < desc.length - 1) {
+          // 前半为基准价，后半为优惠说明（高亮）
+          parts.push({ id: 0, text: desc.slice(0, dashIdx).trim(), highlight: false });
+          parts.push({ id: 1, text: desc.slice(dashIdx + 1).trim(), highlight: true });
+        } else {
+          parts.push({ id: 0, text: desc.trim(), highlight: false });
+        }
+      }
+      return { ...goods, priceDescParts: parts };
+    },
+
     async loadDetail(goodsId) {
       if (!goodsId) return;
       // 防重复请求：observer 与 attached 可能都会触发加载，同一商品只请求一次
@@ -54,7 +80,7 @@ Component({
         const res = await getProductDetail(goodsId);
         if (res.code === 0 && res.data) {
           this.setData({
-            goods: res.data,
+            goods: this._normalizeDetail(res.data),
             loading: false,
           });
         } else {
@@ -93,6 +119,61 @@ Component({
     },
 
     noop() {},
+
+    /**
+     * 预览主图：从点击的图开始预览，可左右切换全部主图
+     */
+    previewMainImage(e) {
+      const url = e.currentTarget.dataset.url;
+      if (!url) return;
+      const images = this.data.goods && this.data.goods.images;
+      wx.previewImage({
+        current: url,
+        urls: images && images.length ? images : [url],
+      });
+    },
+
+    /**
+     * 预览详情长图：从点击的图开始，可切换全部详情图
+     */
+    previewDetailImage(e) {
+      const url = e.currentTarget.dataset.url;
+      if (!url) return;
+      const detailImages = this.data.goods && this.data.goods.detailImages;
+      wx.previewImage({
+        current: url,
+        urls: detailImages && detailImages.length ? detailImages : [url],
+      });
+    },
+
+    /**
+     * 悬浮返回按钮与右上角胶囊水平对齐：
+     * 取胶囊矩形，让按钮的垂直中心与胶囊中心重合
+     */
+    initNavBackStyle() {
+      try {
+        const menu = wx.getMenuButtonBoundingClientRect();
+        const btnSize = 34; // 与 wxss .nav-back-btn 的宽高一致（px）
+        if (menu && menu.top) {
+          const top = menu.top + (menu.height - btnSize) / 2;
+          this.setData({ navBackStyle: `top:${Math.max(top, 0)}px;` });
+        }
+      } catch (err) {
+        console.warn('[Goods] 初始化返回按钮位置失败:', err);
+      }
+    },
+
+    /**
+     * 悬浮返回按钮：返回上一页
+     */
+    onNavBack() {
+      wx.navigateBack({
+        delta: 1,
+        fail: () => {
+          wx.switchTab({ url: '/pages/index/index' });
+        },
+      });
+    },
 
     /**
      * 获取手机号回调
@@ -138,6 +219,8 @@ Component({
           app.globalData.userInfo = (user.nickname || user.avatar) ? user : (data.userInfo || null);
           app.globalData.isLogin = true;
           app.globalData.needPhoneLogin = false;
+          // 同步用户 uid，供转链等接口使用
+          setUserConfig({ uid: app.globalData.userId });
 
           wx.setStorageSync('token', app.globalData.token);
           wx.setStorageSync('userId', app.globalData.userId);
@@ -223,10 +306,10 @@ Component({
       });
     },
 
-    // 前往购买：实时请求转链接口，获取 weapp_url 跳转唯品会小程序
+    // 前往购买：实时请求转链接口，按商品 ID 获取 weapp_url 跳转唯品会小程序
     async onBuyTap() {
       const { goods } = this.data;
-      if (!goods || !goods.destUrl) {
+      if (!goods || !goods.id) {
         wx.showToast({ title: '暂无购买链接', icon: 'none' });
         return;
       }
@@ -242,11 +325,16 @@ Component({
       wx.showLoading({ title: '获取推广链接...', mask: true });
 
       try {
-        const res = await getTranUrl(goods.destUrl, uid);
+        const res = await getGoodsTranUrlByGoodsId({
+          goodsId: goods.id,
+          platform: goods.platform || 'vip',
+          uid,
+          pid: goods.pid || '',
+        });
         wx.hideLoading();
         this._buying = false;
 
-        if (res && res.code === 200 && res.urls && res.urls.weapp_url) {
+        if (res && res.result === true && res.urls && res.urls.weapp_url) {
           const weappUrl = res.urls.weapp_url;
           console.log('[Goods] 唯品会小程序路径:', weappUrl);
           wx.navigateToMiniProgram({

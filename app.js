@@ -68,6 +68,8 @@ App({
         this.globalData.userId = user.id || data.userId || data.id || '';
         this.globalData.userInfo = (user.nickname || user.avatar) ? user : (data.userInfo || null);
         this.globalData.isLogin = true;
+        // 同步用户 uid，供转链等接口使用
+        api.setUserConfig({ uid: this.globalData.userId });
 
         wx.setStorageSync('token', this.globalData.token);
         wx.setStorageSync('userId', this.globalData.userId);

@@ -1,7 +1,10 @@
 <!--pages/goods/goods.wxml-->
-<navigation-bar title="商品详情" back="{{true}}" color="black" background="#FFF"></navigation-bar>
-
 <view class="page">
+  <!-- 悬浮返回按钮（顶部导航已去除，图片置顶；top 与胶囊对齐） -->
+  <view class="nav-back-btn" style="{{navBackStyle}}" hover-class="nav-back-btn-hover" bindtap="onNavBack">
+    <view class="nav-back-icon"></view>
+  </view>
+
   <block wx:if="{{loading}}">
     <view class="loading-container">
       <text class="loading-text">加载中...</text>
@@ -10,8 +13,21 @@
 
   <block wx:elif="{{goods}}">
     <scroll-view class="detail-scroll" scroll-y>
-      <!-- 商品主图 -->
-      <image class="goods-image" src="{{goods.image}}" mode="aspectFill"></image>
+      <!-- 商品主图轮播 -->
+      <swiper class="goods-swiper" wx:if="{{goods.images.length > 0}}"
+        indicator-dots="{{goods.images.length > 1}}"
+        indicator-color="rgba(255, 255, 255, 0.4)"
+        indicator-active-color="#ffffff"
+        circular="{{goods.images.length > 1}}"
+        autoplay="{{goods.images.length > 1}}"
+        interval="4000">
+        <swiper-item wx:for="{{goods.images}}" wx:key="*this">
+          <image class="goods-image" src="{{item}}" mode="aspectFill"
+            data-url="{{item}}" bindtap="previewMainImage"></image>
+        </swiper-item>
+      </swiper>
+      <image wx:else class="goods-image" src="{{goods.image}}" mode="aspectFill"
+        data-url="{{goods.image}}" bindtap="previewMainImage"></image>
 
       <!-- 价格区域 -->
       <view class="price-section">
@@ -19,7 +35,16 @@
           <text class="price-symbol">¥</text>
           <text class="price-value">{{goods.price}}</text>
           <text wx:if="{{goods.originalPrice > goods.price}}" class="original-price">¥{{goods.originalPrice}}</text>
-          <text wx:if="{{goods.discount}}" class="discount-tag">{{goods.discount * 10}}折</text>
+        </view>
+
+        <!-- 价格计算方式 -->
+        <view wx:if="{{goods.priceDescParts && goods.priceDescParts.length > 0}}" class="price-desc-row">
+          <view class="price-desc-inner">
+            <block wx:for="{{goods.priceDescParts}}" wx:for-item="part" wx:key="id">
+              <text wx:if="{{index > 0}}" class="price-desc-minus">-</text>
+              <text class="price-desc-part {{part.highlight ? 'price-desc-part-hl' : ''}}">{{part.text}}</text>
+            </block>
+          </view>
         </view>
 
         <!-- 返利信息（暂隐藏） -->
@@ -58,6 +83,13 @@
           <text class="meta-label">销量</text>
           <text class="meta-value">{{goods.sales}}</text>
         </view>
+      </view>
+
+      <!-- 详情图片（detailImages 拼接） -->
+      <view wx:if="{{goods.detailImages.length > 0}}" class="detail-images">
+        <image wx:for="{{goods.detailImages}}" wx:key="*this" class="detail-img"
+          src="{{item}}" mode="widthFix" lazy-load="{{true}}"
+          data-url="{{item}}" bindtap="previewDetailImage"></image>
       </view>
     </scroll-view>
 

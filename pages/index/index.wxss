@@ -4,19 +4,30 @@ page {
   background: #f5f5f5;
 }
 
-/* 顶部搜索栏 */
+/* 顶部搜索栏（固定在视口顶部，顶部间距由 JS 按状态栏高度填充，右侧为胶囊按钮让位收窄） */
 .search-bar {
-  padding: 20rpx 24rpx;
-  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  padding: 0 0 10rpx 32rpx;
+  box-sizing: border-box;
+  background: #81d8cf;
 }
 
 .search-box {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  height: 72rpx;
-  background: #f5f5f5;
+  height: 64rpx;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 3rpx solid #81d8cf;
   border-radius: 40rpx;
   padding: 0 24rpx;
+  box-shadow: 0 6rpx 18rpx rgba(129, 216, 207, 0.45);
 }
 
 .search-icon {
@@ -33,8 +44,10 @@ page {
 /* 粘贴购物链接 */
 .link-section {
   background: #fff;
+  border-radius: 20rpx;
   padding: 24rpx;
-  margin-bottom: 16rpx;
+  margin: 0 24rpx 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .link-input-wrap {
@@ -66,7 +79,7 @@ page {
   height: 52rpx;
   line-height: 52rpx;
   font-size: 24rpx;
-  color: #ff5000;
+  color: #0ea294;
   background: #fff;
   border-radius: 12rpx;
   margin-top: 12rpx;
@@ -79,8 +92,10 @@ page {
   text-align: center;
   font-size: 30rpx;
   font-weight: bold;
-  color: #fff;
-  background: linear-gradient(135deg, #ff5000, #ff6b35);
+  color: #111;
+  background: #fff;
+  border: 3rpx solid #111;
+  box-sizing: border-box;
   border-radius: 40rpx;
 }
 
@@ -152,7 +167,7 @@ page {
 }
 
 .result-url-highlight {
-  color: #e02e24;
+  color: #0ea294;
   font-weight: 500;
 }
 
@@ -169,10 +184,11 @@ page {
   text-align: center;
   font-size: 30rpx;
   font-weight: bold;
-  color: #fff;
-  background: linear-gradient(135deg, #e02e24, #f04e40);
+  color: #111;
+  background: #fff;
+  border: 3rpx solid #111;
+  box-sizing: border-box;
   border-radius: 40rpx;
-  border: none;
   padding: 0;
 }
 
@@ -187,10 +203,11 @@ page {
   text-align: center;
   font-size: 26rpx;
   font-weight: 500;
-  color: #e02e24;
-  background: rgba(224, 46, 36, 0.08);
+  color: #111;
+  background: #fff;
+  border: 3rpx solid #111;
+  box-sizing: border-box;
   border-radius: 12rpx;
-  border: none;
   padding: 0;
   margin-top: 16rpx;
 }
@@ -199,16 +216,13 @@ page {
   border: none;
 }
 
-.result-link-copy-btn-sub {
-  color: #ff5000;
-  background: rgba(255, 80, 0, 0.08);
-}
-
 /* 电商平台入口 */
 .platform-section {
   background: #fff;
+  border-radius: 20rpx;
   padding: 28rpx 24rpx 20rpx;
-  margin-bottom: 16rpx;
+  margin: 0 24rpx 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .section-title {
@@ -300,7 +314,7 @@ page {
 .goods-price {
   font-size: 30rpx;
   font-weight: bold;
-  color: #ff5000;
+  color: #0ea294;
 }
 
 .goods-original-price {
@@ -312,8 +326,8 @@ page {
 
 .goods-rebate {
   font-size: 22rpx;
-  color: #ff5000;
-  background: rgba(255, 80, 0, 0.08);
+  color: #0ea294;
+  background: rgba(129, 216, 207, 0.18);
   padding: 2rpx 10rpx;
   border-radius: 6rpx;
 }
@@ -389,12 +403,13 @@ page {
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
-  background: linear-gradient(135deg, #ff5000, #ff6b35);
-  color: #fff;
+  background: #fff;
+  color: #111;
   font-size: 30rpx;
   font-weight: bold;
+  border: 3rpx solid #111;
+  box-sizing: border-box;
   border-radius: 44rpx;
-  border: none;
   padding: 0;
 }
 
