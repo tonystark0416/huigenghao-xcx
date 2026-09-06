@@ -65,21 +65,33 @@
     <button class="result-copy-btn" bindtap="onCopyLink">一键复制推广链接</button>
   </view>
 
-  <!-- 今日最优惠活动 -->
+  <!-- 今日最优惠活动（接口待对接，先展示三条占位 banner） -->
   <view class="activity-section">
-    <view class="section-title">今日最优惠活动</view>
     <view class="activity-grid" wx:if="{{activityBanners.length > 0}}">
       <view
-        class="activity-item"
+        class="activity-card"
         wx:for="{{activityBanners}}"
         wx:key="id"
         data-item="{{item}}"
         bindtap="onActivityTap"
       >
-        <view class="activity-icon">
-          <image class="activity-icon-image" src="{{item.image}}" mode="aspectFit" />
+        <!-- 标题行：左侧彩色圆 icon + 右侧标题/子标题 -->
+        <view class="activity-head">
+          <view class="activity-icon" style="background: {{item.iconBg}};">
+            <text class="activity-icon-text">{{item.icon}}</text>
+          </view>
+          <view class="activity-head-text">
+            <text class="activity-title">{{item.title}}</text>
+            <text class="activity-subtitle">{{item.subtitle}}</text>
+          </view>
         </view>
-        <text class="activity-title">{{item.title}}</text>
+        <!-- 图片区：有图渲染 image，否则占位 -->
+        <view class="activity-image">
+          <image wx:if="{{item.image}}" class="activity-image-img" src="{{item.image}}" mode="widthFix" />
+          <view wx:else class="activity-image-placeholder">
+            <text>商品图占位</text>
+          </view>
+        </view>
       </view>
     </view>
     <view class="activity-empty" wx:else>

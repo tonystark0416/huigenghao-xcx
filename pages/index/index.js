@@ -7,8 +7,12 @@ Component({
     navTopPad: 20,
     capsuleGap: 0,
     showLoginModal: false,
-    // 今日最优惠活动（接口待对接，默认空）
-    activityBanners: [],
+    // 今日最优惠活动（接口待对接，先放三条占位数据）
+    activityBanners: [
+      { id: 1, iconBg: '#FF1493', icon: '闪', title: '限时狂秒', subtitle: '官方补贴', image: '' },
+      { id: 2, iconBg: '#E4007F', icon: '抢', title: '3折疯抢', subtitle: '大牌衣服3折买', image: '' },
+      { id: 3, iconBg: '#FF9A00', icon: '低', title: '天天低价', subtitle: '爆款闪降', image: '' },
+    ],
     linkInput: '',
     // 链接转换
     linkConverting: false,
@@ -88,7 +92,12 @@ Component({
     /**
      * 加载今日最优惠活动 banner 数据
      * TODO: 接口正在开发中，期望响应
-     *   { code: 0, data: [{ id, image, title, link?, targetType? }] }
+     *   { code: 0, data: [{ id, iconBg, icon, title, subtitle, image, link?, targetType? }] }
+     *   - iconBg: 标题前圆形 icon 背景色
+     *   - icon:   圆形 icon 内文字（emoji 或单字）
+     *   - title:  标题（粗体大字）
+     *   - subtitle: 子标题（灰色小字）
+     *   - image:  商品大图 URL，空字符串则前端展示占位
      * 对接完成后在 lifetimes.attached 中调用本方法即可
      */
     async loadActivityBanners() {
