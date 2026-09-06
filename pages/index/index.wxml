@@ -65,22 +65,25 @@
     <button class="result-copy-btn" bindtap="onCopyLink">一键复制推广链接</button>
   </view>
 
-  <!-- 电商平台入口 -->
-  <view class="platform-section">
-    <view class="section-title">电商购物</view>
-    <view class="platform-grid">
+  <!-- 今日最优惠活动 -->
+  <view class="activity-section">
+    <view class="section-title">今日最优惠活动</view>
+    <view class="activity-grid" wx:if="{{activityBanners.length > 0}}">
       <view
-        class="platform-item"
-        wx:for="{{platforms}}"
-        wx:key="key"
-        data-key="{{item.key}}"
-        bindtap="onPlatformTap"
+        class="activity-item"
+        wx:for="{{activityBanners}}"
+        wx:key="id"
+        data-item="{{item}}"
+        bindtap="onActivityTap"
       >
-        <view class="platform-icon" style="background: {{item.color}};">
-          <text class="platform-icon-text">{{item.icon}}</text>
+        <view class="activity-icon">
+          <image class="activity-icon-image" src="{{item.image}}" mode="aspectFit" />
         </view>
-        <text class="platform-name">{{item.name}}</text>
+        <text class="activity-title">{{item.title}}</text>
       </view>
+    </view>
+    <view class="activity-empty" wx:else>
+      <text>活动即将上线，敬请期待</text>
     </view>
   </view>
 
@@ -139,13 +142,4 @@
   </view>
 </view>
 
-<!-- 第三方授权提示弹窗 -->
-<view class="login-modal" wx:if="{{showAuthModal}}" catchtouchmove="noop">
-  <view class="login-mask" bindtap="closeAuthModal"></view>
-  <view class="login-dialog">
-    <view class="login-title">未授权</view>
-    <view class="login-desc">使用{{authPlatformName}}购物需要先授权，点击下方按钮完成授权</view>
-    <button class="login-phone-btn" bindtap="onGoAuth">去授权</button>
-    <view class="login-skip" bindtap="closeAuthModal">暂不授权</view>
-  </view>
-</view>
+<!-- 第三方授权提示弹窗已移除：电商平台入口下线后不再使用 -->

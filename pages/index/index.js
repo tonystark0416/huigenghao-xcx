@@ -1,5 +1,5 @@
 // index.js
-const { getGoodsList, checkAuth, genAuthUrl, convertLink, setUserConfig } = require('../../utils/api');
+const { getGoodsList, convertLink, setUserConfig } = require('../../utils/api');
 
 Component({
   data: {
@@ -7,9 +7,8 @@ Component({
     navTopPad: 20,
     capsuleGap: 0,
     showLoginModal: false,
-    showAuthModal: false,
-    authPlatform: '',
-    authPlatformName: '',
+    // 今日最优惠活动（接口待对接，默认空）
+    activityBanners: [],
     linkInput: '',
     // 链接转换
     linkConverting: false,
@@ -21,13 +20,6 @@ Component({
     goodsPageSize: 10,
     goodsHasMore: true,
     goodsLoading: false,
-    platforms: [
-      { name: '唯品会', key: 'vip', color: '#E4007F', icon: '唯' },
-      { name: '拼多多', key: 'pdd', color: '#e02e24', icon: '拼' },
-      { name: '淘宝', key: 'taobao', color: '#ff5000', icon: '淘' },
-      { name: '京东', key: 'jd', color: '#c91623', icon: '京' },
-      { name: '抖音商城', key: 'douyin', color: '#000000', icon: '抖' },
-    ],
   },
 
   lifetimes: {
@@ -36,6 +28,8 @@ Component({
       this.setNavTopLayout();
       // 加载首页商品列表
       this.loadGoodsList();
+      // TODO: 活动 banner 接口对接完成后在此调用 this.loadActivityBanners()
+      // this.loadActivityBanners();
     },
   },
 
@@ -89,6 +83,33 @@ Component({
       }
     },
 
+    // ==================== 今日最优惠活动 ====================
+
+    /**
+     * 加载今日最优惠活动 banner 数据
+     * TODO: 接口正在开发中，期望响应
+     *   { code: 0, data: [{ id, image, title, link?, targetType? }] }
+     * 对接完成后在 lifetimes.attached 中调用本方法即可
+     */
+    async loadActivityBanners() {
+      // 接口待对接，先保留空实现
+      // const res = await getActivityBanners();
+      // if (res && res.code === 0 && Array.isArray(res.data)) {
+      //   this.setData({ activityBanners: res.data.slice(0, 3) });
+      // }
+    },
+
+    /**
+     * 活动 banner 点击事件
+     * TODO: 根据 item.link / item.targetType 跳转到活动详情或对应小程序
+     */
+    onActivityTap(e) {
+      const { item } = e.currentTarget.dataset;
+      console.log('[Index] 点击活动 banner:', item);
+    },
+
+    // ==================== 登录 ====================
+
     /**
      * 确保用户已登录，未登录则弹出登录弹窗并存储回调
      * @param {Function} callback - 登录成功后要执行的回调
@@ -110,44 +131,6 @@ Component({
     closeLoginModal() {
       this._pendingAction = null;
       this.setData({ showLoginModal: false });
-    },
-
-    /**
-     * 关闭授权提示弹窗
-     */
-    closeAuthModal() {
-      this.setData({ showAuthModal: false });
-    },
-
-    /**
-     * 点击"去授权"按钮，获取授权链接并跳转
-     */
-    async onGoAuth() {
-      const { authPlatform } = this.data;
-      const config = authPlatform === 'vip'
-        ? { appId: 'wxe9714e742209d35f', name: '唯品会' }
-        : { appId: 'wxa918198f16869201', name: '拼多多' };
-
-      // 先关闭弹窗
-      this.setData({ showAuthModal: false });
-
-      try {
-        wx.showLoading({ title: '获取授权...', mask: true });
-        const uid = getApp().globalData.userId || getApp().globalData.openid || '';
-        const urlRes = await genAuthUrl(uid, authPlatform);
-        wx.hideLoading();
-
-        const weappUrl = urlRes && urlRes.authUrl && urlRes.authUrl.weapp_url;
-        if (weappUrl) {
-          this.navigateToMiniProgram(config.appId, weappUrl);
-        } else {
-          wx.showToast({ title: `获取${config.name}授权链接失败`, icon: 'none' });
-        }
-      } catch (err) {
-        wx.hideLoading();
-        console.error('[Index] 获取授权链接异常:', err);
-        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
-      }
     },
 
     /**
@@ -539,97 +522,6 @@ Component({
     goToSearch() {
       wx.navigateTo({
         url: '/pages/search/search',
-      });
-    },
-
-    /**
-     * 点击平台入口
-     * 唯品会/拼多多：校验授权后跳转对应小程序
-     * 淘宝/京东/抖音：尚未接入，弹出提示
-     */
-    async onPlatformTap(e) {
-      const { key } = e.currentTarget.dataset;
-      if (key === 'taobao' || key === 'jd' || key === 'douyin') {
-        wx.showModal({
-          title: '敬请期待',
-          content: '该平台还在接入中，敬请期待',
-          showCancel: false,
-          confirmText: '知道了',
-        });
-        return;
-      }
-      if (!this.ensureLogin(() => this._doPlatformTap(key))) return;
-      this._doPlatformTap(key);
-    },
-
-    /**
-     * 平台跳转核心逻辑（登录后执行）
-     * 当前仅唯品会/拼多多已接入
-     */
-    async _doPlatformTap(key) {
-      if (key === 'vip' || key === 'pdd') {
-        await this.jumpToThirdPlatform(key);
-      }
-    },
-
-    /**
-     * 跳转第三方平台小程序
-     * 先校验授权，已授权直接跳转，未授权去授权页
-     */
-    async jumpToThirdPlatform(platform) {
-      const config = platform === 'vip'
-        ? {
-            appId: 'wxe9714e742209d35f',
-            path: 'pages/index/index?$route=pages%2Findex%2Findex&tra_from=adp%3AC01V4n57m12uzug2%3A%3Amig_code%3A%3Aac014n57m100009u99ddch39t0efs013&chl_type=wxk',
-            name: '唯品会',
-          }
-        : {
-            appId: 'wxa918198f16869201',
-            path: '/pages/web/web?specialUrl=1&src=https%3A%2F%2Fmobile.yangkeduo.com%2Fduo_transfer_channel.html%3FresourceType%3D4%26pid%3D43384525_317172887%26customParameters%3D%257B%2522uid%2522%253A%2522123007%2522%257D%26cpsSign%3DCE_260726_43384525_317172887_d95427450c00dc9b9c082f9a3f2e9038%26_x_ddjb_act%3D%257B%2522st%2522%253A%25226%2522%257D%26duoduo_type%3D2',
-            name: '拼多多',
-          };
-
-      try {
-        wx.showLoading({ title: '加载中...', mask: true });
-
-        // Step 1: 校验授权状态
-        const uid = getApp().globalData.userId || getApp().globalData.openid || '';
-        const authRes = await checkAuth(uid, platform);
-        wx.hideLoading();
-
-        const isAuth = authRes && authRes.authStatus && authRes.authStatus.isAuth;
-        if (isAuth) {
-          // 已授权，直接跳转
-          this.navigateToMiniProgram(config.appId, config.path);
-        } else {
-          // 未授权，弹出提示窗口
-          this.setData({
-            showAuthModal: true,
-            authPlatform: platform,
-            authPlatformName: config.name,
-          });
-        }
-      } catch (err) {
-        wx.hideLoading();
-        console.error(`[Index] 跳转${config.name}失败:`, err);
-        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
-      }
-    },
-
-    /**
-     * 跳转第三方小程序
-     */
-    navigateToMiniProgram(appId, path) {
-      wx.navigateToMiniProgram({
-        appId,
-        path,
-        success: () => {
-          console.log('[Index] 跳转成功:', appId);
-        },
-        fail: (err) => {
-          console.error('[Index] 跳转失败:', err);
-          wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
-        },
       });
     },
   },
