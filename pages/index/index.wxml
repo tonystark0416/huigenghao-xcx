@@ -13,7 +13,7 @@
     <view class="link-input-wrap">
       <textarea
         class="link-textarea"
-        placeholder="粘贴电商购物链接，查找优惠券"
+        placeholder="粘贴淘宝/唯品会/京东/拼多多/抖音 链接查找优惠"
         placeholder-class="link-placeholder"
         value="{{linkInput}}"
         bindinput="onLinkInput"
@@ -113,7 +113,6 @@
             <text class="goods-price">{{item.priceText}}</text>
             <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
           </view>
-          <text class="goods-rebate" wx:if="{{item.rebateText}}">{{item.rebateText}}</text>
         </view>
       </view>
     </view>

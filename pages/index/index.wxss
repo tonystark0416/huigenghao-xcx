@@ -53,7 +53,7 @@ page {
 .link-input-wrap {
   display: flex;
   flex-direction: column;
-  height: 240rpx;
+  height: 160rpx;
   background: #f5f5f5;
   border-radius: 16rpx;
   padding: 20rpx 20rpx 16rpx;

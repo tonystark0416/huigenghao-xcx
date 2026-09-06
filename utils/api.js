@@ -849,22 +849,25 @@ function mapOrder(item) {
  *
  * 接口: GET ${BASE_URL}/api/order/getList
  * 请求参数 (query):
- *   - uid  {string|number} 当前用户 uid
- *   - page {number}        页码，从 1 开始
+ *   - uid      {string|number} 当前用户 uid
+ *   - page     {number}        页码，从 1 开始
+ *   - platform {string}        平台标识：vip=唯品会，meituan=美团
  *
  * 成功返回: { list: [...], page, pageSize, total, totalPages }
  *
  * @param {string|number} uid - 当前用户 uid
  * @param {number} [page=1] - 页码，从 1 开始
+ * @param {string} [platform='vip'] - 平台标识，默认唯品会(vip)
  * @returns {Promise<{list: Array, page: number, total: number, totalPages: number} | null>}
  */
-async function getOrderList(uid, page = 1) {
+async function getOrderList(uid, page = 1, platform = 'vip') {
   if (!uid) return null;
 
   try {
     const query = [
       `uid=${encodeURIComponent(uid)}`,
       `page=${page}`,
+      `platform=${platform}`,
     ].join('&');
 
     const url = `${BASE_URL}/api/order/getList?${query}`;

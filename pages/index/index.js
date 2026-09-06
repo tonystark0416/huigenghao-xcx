@@ -23,10 +23,10 @@ Component({
     goodsLoading: false,
     platforms: [
       { name: '唯品会', key: 'vip', color: '#E4007F', icon: '唯' },
+      { name: '拼多多', key: 'pdd', color: '#e02e24', icon: '拼' },
       { name: '淘宝', key: 'taobao', color: '#ff5000', icon: '淘' },
       { name: '京东', key: 'jd', color: '#c91623', icon: '京' },
       { name: '抖音商城', key: 'douyin', color: '#000000', icon: '抖' },
-      { name: '拼多多', key: 'pdd', color: '#e02e24', icon: '拼' },
     ],
   },
 
@@ -524,24 +524,30 @@ Component({
     /**
      * 点击平台入口
      * 唯品会/拼多多：校验授权后跳转对应小程序
-     * 其他平台：跳转搜索页
+     * 淘宝/京东/抖音：尚未接入，弹出提示
      */
     async onPlatformTap(e) {
       const { key } = e.currentTarget.dataset;
+      if (key === 'taobao' || key === 'jd' || key === 'douyin') {
+        wx.showModal({
+          title: '敬请期待',
+          content: '该平台还在接入中，敬请期待',
+          showCancel: false,
+          confirmText: '知道了',
+        });
+        return;
+      }
       if (!this.ensureLogin(() => this._doPlatformTap(key))) return;
       this._doPlatformTap(key);
     },
 
     /**
      * 平台跳转核心逻辑（登录后执行）
+     * 当前仅唯品会/拼多多已接入
      */
     async _doPlatformTap(key) {
       if (key === 'vip' || key === 'pdd') {
         await this.jumpToThirdPlatform(key);
-      } else {
-        wx.navigateTo({
-          url: `/pages/search/search?platform=${key}`,
-        });
       }
     },
 

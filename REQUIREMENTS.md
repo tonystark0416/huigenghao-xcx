@@ -1,6 +1,6 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.10.0  
+> 多平台 CPS 返利小程序 | 版本 v0.10.1  
 > 最后更新：2026-09-06
 
 ---
@@ -96,12 +96,11 @@ huigenghao/
 - **顶部布局**：移除独立标题导航栏，页面内容从屏幕最顶开始；搜索框置顶固定（`position: sticky`），头部整块主色 `#81D8CF` 背景（无渐变，含状态栏区域），顶部间距动态读取胶囊按钮上边缘使其与搜索框同高、水平对齐，右侧自动避让胶囊宽度，页面滑动时头部固定不随内容滚动
 - 搜索入口：点击置顶搜索框（占位文案「搜索全网好物」）跳转商品搜索页
 - 转链按钮文案「查找专属优惠」（转换中显示「正在转换...」）；下方「粘贴链接」「平台入口」区块收窄为主色系圆角留白卡片
-- **精选好物**：调用 `GET /api/goodsList` 接口，双列瀑布流展示推荐商品，点击卡片跳转商品详情页
-- **链接转换**：支持粘贴拼多多和唯品会商品链接，调 `GET /api/tranUrl` 获取推广链接（h5_url/weapp_url/deeplink_url），每个链接独立可复制
-- **第三方平台跳转**：点击平台 icon 自动校验授权状态，已授权直跳对应小程序首页，未授权先获取授权链接再跳转
+- **精选好物**：调用 `GET /api/goodsList` 接口，双列瀑布流展示推荐商品，点击卡片跳转商品详情页；卡片隐藏返利金额标签
+- **链接转换**：支持粘贴拼多多和唯品会商品链接，调 `GET /api/tranUrl` 获取推广链接（h5_url/weapp_url/deeplink_url），每个链接独立可复制；输入框占位文案「粘贴淘宝/唯品会/京东/拼多多/抖音 链接查找优惠」，输入区为压缩高度圆角灰底卡片
+- **第三方平台跳转**：唯品会/拼多多 icon 点击后校验授权状态，已授权直跳对应小程序首页，未授权先获取授权链接再跳转；淘宝/京东/抖音尚未接入，点击弹窗提示「该平台还在接入中，敬请期待」
   - 唯品会 appId: `wxe9714e742209d35f`
   - 拼多多 appId: `wxa918198f16869201`
-  - 淘宝/京东/抖音 icon 跳转搜索页
 
 **登录流程**：
 
@@ -120,10 +119,10 @@ huigenghao/
 | 平台 | 标识 | 品牌色 | 点击行为 |
 |------|------|--------|----------|
 | 唯品会 | `vip` | `#E4007F` | 校验授权 → 跳转唯品会小程序 |
-| 淘宝/天猫 | `taobao` | `#ff5000` | 跳转搜索页 |
-| 京东 | `jd` | `#c91623` | 跳转搜索页 |
-| 抖音商城 | `douyin` | `#000000` | 跳转搜索页 |
 | 拼多多 | `pdd` | `#e02e24` | 校验授权 → 跳转拼多多小程序 |
+| 淘宝/天猫 | `taobao` | `#ff5000` | 弹窗提示「敬请期待」（待接入） |
+| 京东 | `jd` | `#c91623` | 弹窗提示「敬请期待」（待接入） |
+| 抖音商城 | `douyin` | `#000000` | 弹窗提示「敬请期待」（待接入） |
 
 **已关联的平台**：
 
@@ -269,13 +268,14 @@ huigenghao/
 
 ### 3.6 我的订单 (`pages/orders/`)
 
-**状态**：✅ 已完成基础版本（v0.9.0）
+**状态**：✅ 已完成基础版本（v0.9.0；v0.10.1 新增平台 Tab）
 
 **功能描述**：
 - 底部第三个 tab，标题「我的订单」，图标为订单/收据线性风格（`images/tabbar/order.png` / `order-active.png`）
 - 进入页面先校验登录态：未登录（`needPhoneLogin && !isLogin` 或无 uid）→ 弹出手机号快捷登录弹窗；已登录 → 自动加载订单
-- 订单列表：调用 `GET https://hgh.pangpai-car.com/api/order/getList`，入参 `uid`（当前用户 uid）与 `page`（翻页查询，从 1 开始）
-- 订单卡片渲染：商品图（`goods_img_url`）、商品名（`goods_name`）、平台标签（`platform`，如 vip=唯品会）、订单号（`order_sn`）、订单状态（`status`，0=已失效/1=待结算/2=已结算）、实付金额（`order_amount`）、预计返利（`commission`）、下单时间（`create_time`）
+- **平台 Tab**：订单列表顶部提供「唯品会 / 美团」两个平台 Tab（选中态为平台色下划线 + 文字加粗），仅支持唯品会（`vip`）与美团（`meituan`）两类订单，默认选中唯品会；切换 Tab 即按新平台重新加载（重置为第 1 页），空状态文案随平台展示「暂无唯品会订单 / 暂无美团订单」
+- 订单列表：调用 `GET https://hgh.pangpai-car.com/api/order/getList`，入参 `uid`（当前用户 uid）、`page`（翻页查询，从 1 开始）与 `platform`（平台标识：`vip`=唯品会、`meituan`=美团）
+- 订单卡片渲染：商品图（`goods_img_url`）、商品名（`goods_name`）、平台名（`platform`，卡片内显示中文如「唯品会」）、订单号（`order_sn`）、订单状态（`status`，0=已失效/1=待结算/2=已结算）、实付金额（`order_amount`）、下单时间（`create_time`）；返利信息（`commission`）已隐藏，卡片尾部仅展示「实付」金额并靠右对齐
 - 下单时间格式化为 `2026/8/20 13:22:23`（月/日不补零，时分秒补零）
 - 上拉触底加载下一页（`totalPages` 判断是否还有更多），空列表展示空状态 + 刷新按钮
 - 登录成功后自动重新加载订单列表
@@ -284,7 +284,7 @@ huigenghao/
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/order/getList?uid=xxx&page=1` | GET | 获取当前用户订单列表，返回 `{ list, page, pageSize, total, totalPages }`，`list[].create_time` 为毫秒时间戳 |
+| `/api/order/getList?uid=xxx&page=1&platform=vip` | GET | 获取当前用户指定平台订单列表，`platform` 取值：`vip`=唯品会、`meituan`=美团；返回 `{ list, page, pageSize, total, totalPages }`，`list[].create_time` 为毫秒时间戳 |
 
 ---
 
@@ -440,7 +440,7 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 | 接口 | 路径 | 说明 | 状态 |
 |------|------|------|------|
 | 用户信息 | `GET /api/user/info` | 获取用户信息和返利汇总 | 🔜 |
-| 订单列表 | `GET /api/order/getList?uid=xxx&page=1` | 查询订单与返利记录（已实现，见 [3.6](#36-我的订单-pagesorders-)） | ✅ |
+| 订单列表 | `GET /api/order/getList?uid=xxx&page=1&platform=vip` | 按平台查询订单与返利记录，`platform` 支持 `vip`=唯品会、`meituan`=美团（已实现，见 [3.6](#36-我的订单-pagesorders-)） | ✅ |
 | 提现 | `POST /api/withdraw` | 申请提现 | 🔜 |
 
 ---
@@ -695,6 +695,7 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-09-06 | v0.10.1 | **我的订单迭代**：订单列表顶部新增平台 Tab（唯品会 `vip` / 美团 `meituan`，默认唯品会），切换 Tab 重置分页并按新平台重新加载；`GET /api/order/getList` 新增 `platform` 参数区分平台（唯品会/美团）；订单卡片隐藏预计返利、尾部仅「实付」金额靠右对齐，空状态文案带当前平台名（暂无xx订单）。**首页调整**：淘宝/京东/抖音平台入口点击改为弹窗「敬请期待」（待接入）不再跳搜索页，拼多多入口顺序前移；链接转链输入框占位文案改为「粘贴淘宝/唯品会/京东/拼多多/抖音 链接查找优惠」并压缩输入区高度；精选好物卡片隐藏返利金额标签 | [3.1](#31-首页-pagesindex-) [3.6](#36-我的订单-pagesorders-) [4.5](#45-后续待定接口) |
 | 2026-09-06 | v0.10.0 | **全站视觉换肤**：UI 主色由橙红系（`#ff5000`/`#e02e24`）改为青绿系（主色 `#81D8CF` + 强调 `#0ea294`）；主按钮统一为白底黑字黑框胶囊；搜索框白底+主色描边+光晕；价格/返利/状态/标签等强调文字全部换主色；tabBar 选中色同步 `#0ea294`。**首页头部重构**：移除顶部标题导航栏，搜索框置顶并固定（整块主色背景无渐变、与胶囊同高且水平对齐、右侧避让胶囊），占位文案「搜索全网好物」，转链按钮文案「查找专属优惠」，下方入口区块收窄为圆角留白卡片。**商品详情页升级**：适配真实详情接口新结构（`{result, data:{goodsId, goodsName, images, detailImages, prices, commission, tags, url}}`）；主图轮播+点击预览、详情长图展示+预览、价格计算方式 `priceDesc` 分段高亮；移除导航栏改悬浮返回按钮（与胶囊垂直对齐）；购买按钮实时调用按商品 ID 转链 `GET /api/tranUrl/genUrlByGoodsId` 获取 `weapp_url`。**用户 uid 真实化**：移除 Mock uid `mike004`，登录成功同步 `setUserConfig({ uid })`，美团活动转链接口带 uid。**吃喝玩乐页**：进入页面未登录弹出手机号快捷登录弹窗（可暂不登录跳过） | [3.1](#31-首页-pagesindex-) [3.2](#32-吃喝玩乐页-pageslife-) [3.3](#33-商品详情页-pagesgoods-) [6.1](#61-色彩系统) |
 | 2026-08-30 | v0.9.0 | 新增底部 tab「我的订单」：新增 `pages/orders/` 页面，未登录（无 uid）弹出手机号快捷登录弹窗，已登录调 `GET /api/order/getList?uid=xxx&page=1` 分页加载订单，渲染订单卡片（商品图/名称/平台/订单号/状态/实付/返利/下单时间），`create_time` 格式化为 `2026/8/20 13:22:23`；设计并生成 tabBar 图标（order.png/order-active.png）；`app.json` 注册页面与 tabBar 项；api.js 新增 `getOrderList` | [3.6](#36-我的订单-pagesorders-) |
 | 2026-08-23 | v0.8.6 | 点击搜索商品卡片实时获取推广链接：搜索列表项映射 `productViewSign`，点击调 `/api/meituan/referral-link-by-goods-id?productViewSign=xxx`，取 `referralLinkMap` key=4 小程序路径跳转美团 | [3.2](#32-吃喝玩乐页-pageslife-) |

@@ -1,5 +1,26 @@
 <view class="orders-page">
 
+  <!-- 平台Tab：唯品会 / 美团 -->
+  <view class="platform-tabs">
+    <view
+      wx:for="{{platformTabs}}"
+      wx:key="key"
+      class="tab-item {{platform === item.key ? 'tab-active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onPlatformChange"
+    >
+      <text
+        class="tab-text"
+        style="{{platform === item.key ? 'color:' + item.color + ';font-weight:600;' : ''}}"
+      >{{item.name}}</text>
+      <view
+        wx:if="{{platform === item.key}}"
+        class="tab-line"
+        style="background:{{item.color}};"
+      ></view>
+    </view>
+  </view>
+
   <!-- 加载中 -->
   <view class="loading-container" wx:if="{{loading}}">
     <text class="loading-text">加载中...</text>
@@ -8,7 +29,7 @@
   <!-- 空状态 -->
   <view class="empty-container" wx:elif="{{empty}}">
     <view class="empty-icon">📦</view>
-    <text class="empty-text">暂无订单</text>
+    <text class="empty-text">暂无{{platformName}}订单</text>
     <view class="retry-btn" bindtap="onRetryTap">刷新</view>
   </view>
 
@@ -40,15 +61,11 @@
         </view>
       </view>
 
-      <!-- 卡片尾：金额 + 佣金 -->
+      <!-- 卡片尾：实付金额 -->
       <view class="order-card-footer">
         <view class="order-amount">
           <text class="order-amount-label">实付</text>
           <text class="order-amount-value">¥{{item.orderAmount}}</text>
-        </view>
-        <view class="order-commission">
-          <text class="order-commission-label">预计返利</text>
-          <text class="order-commission-value">¥{{item.commission}}</text>
         </view>
       </view>
     </view>

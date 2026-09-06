@@ -3,15 +3,11 @@ const { getOrderList } = require('../../utils/api');
 
 const PAGE_SIZE = 10;
 
-// 平台名称映射
-const PLATFORM_MAP = {
-  vip: '唯品会',
-  taobao: '淘宝',
-  tmall: '天猫',
-  jd: '京东',
-  pdd: '拼多多',
-  meituan: '美团',
-};
+// 平台 Tab 配置（当前支持唯品会 / 美团）
+const PLATFORM_TABS = [
+  { key: 'vip', name: '唯品会', color: '#E4007F' },
+  { key: 'meituan', name: '美团', color: '#FF9A00' },
+];
 
 // 订单状态映射
 const STATUS_MAP = {
@@ -44,6 +40,9 @@ Component({
   },
 
   data: {
+    platformTabs: PLATFORM_TABS,
+    platform: 'vip',
+    platformName: '唯品会',
     loading: false,
     orderList: [],
     page: 1,
@@ -61,6 +60,28 @@ Component({
   },
 
   methods: {
+    /**
+     * 平台 key → 中文名（未知平台原样返回）
+     */
+    getPlatformName(key) {
+      const tab = PLATFORM_TABS.find((t) => t.key === key);
+      return tab ? tab.name : key || '';
+    },
+
+    /**
+     * 切换平台 Tab，并按新平台重新拉取订单
+     */
+    onPlatformChange(e) {
+      const key = e.currentTarget.dataset.key;
+      if (!key || key === this.data.platform) return;
+      const tab = PLATFORM_TABS.find((t) => t.key === key);
+      this.setData({
+        platform: key,
+        platformName: tab ? tab.name : key,
+      });
+      this.loadOrders(1, true);
+    },
+
     /**
      * 校验登录状态：
      * 未登录（无 uid）→ 弹出登录弹窗；已登录 → 加载订单
@@ -99,12 +120,13 @@ Component({
       }
 
       try {
-        const res = await getOrderList(uid, page);
+        const platform = this.data.platform || 'vip';
+        const res = await getOrderList(uid, page, platform);
 
         const orderList = res.list.map((item) => ({
           ...item,
           createTimeText: formatTime(item.createTime),
-          platformText: PLATFORM_MAP[item.platform] || item.platform || '',
+          platformText: this.getPlatformName(item.platform),
           statusText: STATUS_MAP[item.status] !== undefined ? STATUS_MAP[item.status] : '处理中',
         }));
 
