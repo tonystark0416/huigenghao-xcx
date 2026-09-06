@@ -343,15 +343,6 @@ page {
   text-decoration: line-through;
 }
 
-.rebate-text {
-  font-size: 22rpx;
-  color: #0ea294;
-  font-weight: 500;
-  background: rgba(129, 216, 207, 0.18);
-  padding: 4rpx 12rpx;
-  border-radius: 6rpx;
-}
-
 /* ==================== 加载状态 ==================== */
 .loading-row {
   display: flex;

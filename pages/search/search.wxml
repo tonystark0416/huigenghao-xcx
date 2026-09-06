@@ -136,10 +136,9 @@
             <text class="sales-text">已售{{item.salesText}}</text>
           </view>
 
-          <!-- 原价 + 返利 -->
+          <!-- 原价 -->
           <view class="product-bottom-row">
             <text class="original-price">¥{{item.originalPrice}}</text>
-            <text class="rebate-text">返¥{{item.rebate}}</text>
           </view>
         </view>
       </view>
