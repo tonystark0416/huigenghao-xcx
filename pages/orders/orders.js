@@ -44,6 +44,7 @@ Component({
     platform: 'vip',
     platformName: '唯品会',
     loading: false,
+    refreshing: false,
     orderList: [],
     page: 1,
     totalPages: 0,
@@ -104,8 +105,9 @@ Component({
      * 加载订单列表
      * @param {number} page - 页码
      * @param {boolean} reset - 是否重置列表
+     * @param {boolean} [silent] - 下拉刷新场景：不显示整页 loading、不清空旧列表，成功后直接替换
      */
-    async loadOrders(page, reset) {
+    async loadOrders(page, reset, silent) {
       const app = getApp();
       const uid = app.globalData.userId || app.globalData.openid || '';
       if (!uid) {
@@ -113,9 +115,9 @@ Component({
         return;
       }
 
-      if (reset) {
+      if (reset && !silent) {
         this.setData({ loading: true, orderList: [], page: 1, totalPages: 0, hasMore: false, empty: false });
-      } else {
+      } else if (!reset) {
         this.setData({ loadMoreLoading: true });
       }
 
@@ -150,11 +152,24 @@ Component({
       }
     },
 
-    // 下拉加载更多
+    // 上拉触底加载更多
     onReachBottom() {
-      const { hasMore, loadMoreLoading, loading } = this.data;
-      if (!hasMore || loadMoreLoading || loading) return;
+      const { hasMore, loadMoreLoading, loading, refreshing } = this.data;
+      if (!hasMore || loadMoreLoading || loading || refreshing) return;
       this.loadOrders(this.data.page + 1, false);
+    },
+
+    // 下拉刷新：保持列表可见，静默重新拉取当前平台第 1 页
+    async onPullDownRefresh() {
+      const { loading, loadMoreLoading, refreshing } = this.data;
+      if (loading || loadMoreLoading || refreshing) {
+        wx.stopPullDownRefresh();
+        return;
+      }
+      this.setData({ refreshing: true });
+      await this.loadOrders(1, true, true);
+      this.setData({ refreshing: false });
+      wx.stopPullDownRefresh();
     },
 
     // 点击重试
