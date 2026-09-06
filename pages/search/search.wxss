@@ -326,17 +326,6 @@ page {
   line-height: 1.4;
 }
 
-.sales-text {
-  font-size: 20rpx;
-  color: #bbb;
-}
-
-.product-bottom-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .original-price {
   font-size: 22rpx;
   color: #bbb;

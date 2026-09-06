@@ -147,18 +147,6 @@ Component({
 
     // ==================== 核心搜索 ====================
 
-    /**
-     * 格式化商品列表：预处理不在模板中支持的运算
-     */
-    formatProductList(list) {
-      return list.map(item => ({
-        ...item,
-        salesText: item.sales > 10000 
-          ? (item.sales / 10000).toFixed(1) + '万' 
-          : String(item.sales),
-      }));
-    },
-
     async doSearch() {
       const { keyword, platform, pageSize } = this.data;
       if (this.data.loading) return;
@@ -179,7 +167,7 @@ Component({
         });
 
         if (res.code === 0) {
-          const list = this.formatProductList(res.data.list || []);
+          const list = res.data.list || [];
           this.setData({
             productList: list,
             hasMore: res.data.hasMore,
@@ -213,7 +201,7 @@ Component({
         });
 
         if (res.code === 0) {
-          const newList = this.formatProductList(res.data.list || []);
+          const newList = res.data.list || [];
           this.setData({
             productList: [...this.data.productList, ...newList],
             page: nextPage,
@@ -250,7 +238,7 @@ Component({
         });
 
         if (res.code === 0) {
-          const list = this.formatProductList(res.data.list || []);
+          const list = res.data.list || [];
           this.setData({
             productList: list,
             page: 1,

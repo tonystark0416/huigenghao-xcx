@@ -126,18 +126,13 @@
           <!-- 标题 -->
           <text class="product-title">{{item.title}}</text>
 
-          <!-- 价格行 -->
+          <!-- 价格行：券后价 + 原价 -->
           <view class="product-price-row">
             <view class="price-left">
               <text class="price-symbol">¥</text>
               <text class="price-value">{{item.price}}</text>
               <text wx:if="{{item.couponAmount}}" class="coupon-tag">券</text>
             </view>
-            <text class="sales-text">已售{{item.salesText}}</text>
-          </view>
-
-          <!-- 原价 -->
-          <view class="product-bottom-row">
             <text class="original-price">¥{{item.originalPrice}}</text>
           </view>
         </view>
