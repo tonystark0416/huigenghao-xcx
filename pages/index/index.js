@@ -46,6 +46,27 @@ Component({
   },
 
   methods: {
+    // ==================== 分享 ====================
+
+    /**
+     * 转发给好友
+     */
+    onShareAppMessage() {
+      return {
+        title: '精选好物 · 超值返利',
+        path: '/pages/index/index',
+      };
+    },
+
+    /**
+     * 分享到朋友圈
+     */
+    onShareTimeline() {
+      return {
+        title: '精选好物 · 超值返利',
+      };
+    },
+
     /**
      * 计算置顶搜索栏的避让参数
      * navTopPad：胶囊按钮上边缘到屏幕顶的距离（px），使搜索框顶边与胶囊齐平、水平对齐

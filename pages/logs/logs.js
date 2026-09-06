@@ -17,4 +17,26 @@ Component({
       })
     }
   },
+  methods: {
+    // ==================== 分享 ====================
+
+    /**
+     * 转发给好友
+     */
+    onShareAppMessage() {
+      return {
+        title: '系统日志',
+        path: '/pages/logs/logs',
+      };
+    },
+
+    /**
+     * 分享到朋友圈
+     */
+    onShareTimeline() {
+      return {
+        title: '系统日志',
+      };
+    },
+  },
 })

@@ -46,6 +46,38 @@ Component({
   },
 
   methods: {
+    // ==================== 分享 ====================
+
+    /**
+     * 当前商品标题（多字段兜底）
+     */
+    _shareTitle() {
+      const goods = this.data.goods || {};
+      const name = [goods.goodsName, goods.name, goods.title, goods.vipName]
+        .find((n) => n) || '';
+      return (name || '精选好物 · 超值返利').slice(0, 30);
+    },
+
+    /**
+     * 转发给好友：携带商品 id，好友点开直达本商品详情
+     */
+    onShareAppMessage() {
+      return {
+        title: this._shareTitle(),
+        path: `/pages/goods/goods?id=${this.properties.id}`,
+      };
+    },
+
+    /**
+     * 分享到朋友圈
+     */
+    onShareTimeline() {
+      return {
+        title: this._shareTitle(),
+        query: `id=${this.properties.id}`,
+      };
+    },
+
     /**
      * 详情数据预处理：
      * 将价格计算方式文案 priceDesc（如 "¥167-超V折扣 ¥3"）拆分为分段，

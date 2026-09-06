@@ -37,10 +37,49 @@ Component({
   },
 
   methods: {
-    // 接收页面参数（如来自首页平台入口的 platform）
+    // ==================== 分享 ====================
+
+    /**
+     * 分享拼接查询参数：带关键词时对方打开后自动搜索
+     */
+    _shareQuery() {
+      const { keyword, platform } = this.data;
+      if (!keyword) return '';
+      return `?keyword=${encodeURIComponent(keyword)}&platform=${platform}`;
+    },
+
+    /**
+     * 转发给好友
+     */
+    onShareAppMessage() {
+      const { keyword } = this.data;
+      const query = this._shareQuery();
+      return {
+        title: keyword ? `「${keyword}」优惠好价` : '全网好价 · 一键搜券',
+        path: '/pages/search/search' + query,
+      };
+    },
+
+    /**
+     * 分享到朋友圈
+     */
+    onShareTimeline() {
+      const { keyword } = this.data;
+      return {
+        title: keyword ? `「${keyword}」优惠好价` : '全网好价 · 一键搜券',
+        query: this._shareQuery().replace(/^\?/, ''),
+      };
+    },
+
+    // 接收页面参数（来自首页平台入口 / 转发分享），带 keyword 时自动搜索
     onLoad(options) {
-      if (options && options.platform) {
-        this.setData({ platform: options.platform });
+      const { keyword, platform } = options || {};
+      if (platform) {
+        this.setData({ platform });
+      }
+      if (keyword) {
+        this.setData({ keyword, showHistory: false });
+        this.doSearch();
       }
     },
 
