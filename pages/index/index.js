@@ -1,39 +1,66 @@
 // index.js
-const { getGoodsList, convertLink, setUserConfig } = require('../../utils/api');
+const {
+  fetchVipIndexGoods,
+  fetchMeituanIndexGoods,
+  getMeituanGoodsReferralLink,
+  getMeituanReferralLink,
+  getIndexActivityBanners,
+  convertLink,
+  checkAuth,
+  genAuthUrl,
+  setUserConfig,
+} = require('../../utils/api');
+
+// 美团外卖小程序 appId（跳转目标，同吃喝玩乐页）
+const MEITUAN_APP_ID = 'wxde8ac0a21135c07d';
+// 唯品会小程序 appId（跳转目标）
+const VIP_APP_ID = 'wxe9714e742209d35f';
+// 唯品会第三方授权平台标识（/api/thirdAuth/* 的 platform 参数）
+const VIP_AUTH_PLATFORM = 'vip';
+// 转链返回中 key=4 对应小程序路径
+const MINI_PROGRAM_LINK_KEY = '4';
 
 Component({
   data: {
     // 置顶搜索栏避让参数
     navTopPad: 20,
     capsuleGap: 0,
+    // 模糊定位经纬度（进入页面即获取，供后续接口携带）
+    longitude: '',
+    latitude: '',
     showLoginModal: false,
-    // 今日最优惠活动（接口待对接，先放三条占位数据）
-    activityBanners: [
-      { id: 1, iconBg: '#FF1493', icon: '闪', title: '限时狂秒', subtitle: '官方补贴', image: '' },
-      { id: 2, iconBg: '#E4007F', icon: '抢', title: '3折疯抢', subtitle: '大牌衣服3折买', image: '' },
-      { id: 3, iconBg: '#FF9A00', icon: '低', title: '天天低价', subtitle: '爆款闪降', image: '' },
-    ],
+    // 今日最优惠活动：由 /api/banner/indexBannerList 下发；不足两条或请求失败时整区隐藏（保持空数组）
+    activityBanners: [],
     linkInput: '',
     // 链接转换
     linkConverting: false,
     linkResult: null,
     showLinkResult: false,
-    // 商品列表
-    productList: [],
-    goodsOffset: 0,
-    goodsPageSize: 10,
-    goodsHasMore: true,
-    goodsLoading: false,
+    // 精选商品双 tab：1=唯品好货 2=美团热销
+    activeTab: 1,
+    // 唯品好货（tab=1，offset 分页）
+    vipList: [],
+    vipOffset: 0,
+    vipPageSize: 10,
+    vipHasMore: true,
+    vipLoading: false,
+    // 美团热销（tab=2，切换时按定位加载一次）
+    mtList: [],
+    mtLoading: false,
+    mtLoaded: false,
+    mtJumping: false,
   },
 
   lifetimes: {
     attached() {
       // 适配置顶搜索栏（状态栏高度、胶囊按钮右侧避让）
       this.setNavTopLayout();
-      // 加载首页商品列表
-      this.loadGoodsList();
-      // TODO: 活动 banner 接口对接完成后在此调用 this.loadActivityBanners()
-      // this.loadActivityBanners();
+      // 进入页面即获取定位并缓存（与吃喝玩乐页面一致，美团热销 tab 携带经纬度）
+      this.loadLocation();
+      // 默认加载「唯品好货」tab
+      this.loadVipGoods();
+      // 加载首页活动坑位（数据不足两条或接口异常时整区隐藏）
+      this.loadActivityBanners();
     },
   },
 
@@ -87,52 +114,234 @@ Component({
       }
     },
 
+    // ==================== 定位 ====================
+
+    // 获取当前位置（模糊定位，页面加载时调用，缓存到 data 供后续接口携带）
+    getLocation() {
+      return new Promise((resolve) => {
+        wx.getFuzzyLocation({
+          type: 'gcj02',
+          success: (res) => resolve({ longitude: String(res.longitude), latitude: String(res.latitude) }),
+          fail: (err) => {
+            console.error('[Index] wx.getFuzzyLocation 失败:', err);
+            resolve({ longitude: '', latitude: '' });
+          },
+        });
+      });
+    },
+
+    // 页面加载时获取定位并缓存
+    async loadLocation() {
+      const loc = await this.getLocation();
+      if (loc.longitude) {
+        this.setData({
+          longitude: loc.longitude,
+          latitude: loc.latitude,
+        });
+        console.log('[Index] 模糊定位成功, 经度:', loc.longitude, '纬度:', loc.latitude);
+      } else {
+        console.warn('[Index] 模糊定位失败，后续请求不带经纬度');
+      }
+    },
+
     // ==================== 今日最优惠活动 ====================
 
     /**
-     * 加载今日最优惠活动 banner 数据
-     * TODO: 接口正在开发中，期望响应
-     *   { code: 0, data: [{ id, iconBg, icon, title, subtitle, image, link?, targetType? }] }
-     *   - iconBg: 标题前圆形 icon 背景色
-     *   - icon:   圆形 icon 内文字（emoji 或单字）
-     *   - title:  标题（粗体大字）
-     *   - subtitle: 子标题（灰色小字）
-     *   - image:  商品大图 URL，空字符串则前端展示占位
-     * 对接完成后在 lifetimes.attached 中调用本方法即可
+     * 加载首页活动坑位（GET /api/banner/indexBannerList）
+     * - 返回不足两条或请求失败时：置空数组，配合 wxml 的 wx:if 整区隐藏
+     * - 成功时按 sort 降序渲染，最多展示两个（一行两坑布局）
      */
     async loadActivityBanners() {
-      // 接口待对接，先保留空实现
-      // const res = await getActivityBanners();
-      // if (res && res.code === 0 && Array.isArray(res.data)) {
-      //   this.setData({ activityBanners: res.data.slice(0, 3) });
-      // }
+      const list = await getIndexActivityBanners();
+
+      if (!Array.isArray(list) || list.length < 2) {
+        console.warn('[Index] 首页活动 banner 数据不足两条或接口异常，隐藏活动区:', list);
+        this.setData({ activityBanners: [] });
+        return;
+      }
+
+      const banners = list.slice(0, 2).map((item) => ({
+        id: item.id,
+        title: item.title || '',
+        subtitle: item.sub_text || '',
+        image: item.banner_img_url || '',
+        extraId: item.extra_id != null ? String(item.extra_id) : '',
+        extraUrl: item.extra_url || '',
+      }));
+      console.log('[Index] 首页活动 banner 渲染:', banners.length, '条');
+      this.setData({ activityBanners: banners });
     },
 
     /**
-     * 活动 banner 点击事件
-     * TODO: 根据 item.link / item.targetType 跳转到活动详情或对应小程序
+     * 活动坑位点击
+     * - 美团活动：extra_url 为空、extra_id 为活动 id → 按 actId 转美团活动推广链接并跳美团小程序
+     * - 唯品会等带官网/落地页 url：用 extra_url 调 /api/tranUrl 转链，取 weapp_url 跳对应小程序
      */
     onActivityTap(e) {
       const { item } = e.currentTarget.dataset;
-      console.log('[Index] 点击活动 banner:', item);
+      if (!item) return;
+
+      if (item.extraUrl) {
+        this.openVipActivity(item);
+      } else if (item.extraId) {
+        this.openMeituanActivity(item);
+      } else {
+        wx.showToast({ title: '该活动暂不支持跳转', icon: 'none' });
+      }
+    },
+
+    /**
+     * 唯品会坑位：点击后先校验登录，再校验唯品会第三方授权：
+     * 1. 未登录 → ensureLogin 弹手机号登录
+     * 2. 已登录但未在唯品会授权 → /api/thirdAuth/genAuthUrl 取授权链接（小程序路径）
+     *    跳转唯品会小程序完成授权，返回后再点坑位
+     * 3. 已授权 → extra_url → /api/tranUrl 转链（带 uid），weapp_url 跳唯品会小程序
+     */
+    async openVipActivity(item) {
+      const url = (item.extraUrl || '').trim();
+      if (!url) return;
+
+      // Step 1: 校验登录（与美团坑一致，未登录先弹登录弹窗）
+      if (!this.ensureLogin(() => this.openVipActivity(item))) return;
+      if (this._activityJumping) return;
+      this._activityJumping = true;
+
+      wx.showLoading({ title: '加载中...', mask: true });
+      try {
+        const app = getApp();
+        const uid = app.globalData.userId || '';
+        if (!uid) {
+          wx.showToast({ title: '请先完成登录授权', icon: 'none' });
+          return;
+        }
+
+        // Step 2: 校验唯品会第三方授权状态（已授权则直接转链，不再调 genAuthUrl）
+        const authRes = await checkAuth(uid, VIP_AUTH_PLATFORM);
+        console.log('[Index] 唯品会授权状态响应:', authRes);
+        // 真实结构示例: { result: true, authStatus: { isAuth: true } }
+        // 兼容顶层 isAuth / authStatus.isAuth / data.isAuth / result 多种返回
+        const authBody = authRes && (authRes.authStatus || authRes.data || authRes);
+        const authFlag = authBody && (authBody.isAuth !== undefined ? authBody.isAuth : (authRes && authRes.result));
+        const isVipAuthed = authFlag === true || authFlag === 1 || authFlag === '1' || authFlag === 'true';
+
+        if (!isVipAuthed) {
+          // 未授权：获取唯品会授权链接（小程序路径），跳过去完成授权
+          const urlRes = await genAuthUrl(uid, VIP_AUTH_PLATFORM);
+          const authPath = (urlRes && (urlRes.weapp_url || (urlRes.data && urlRes.data.weapp_url))) || '';
+          if (!authPath) {
+            console.error('[Index] 获取唯品会授权链接失败:', urlRes);
+            wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
+            return;
+          }
+          console.log('[Index] 跳转唯品会授权页, 路径:', authPath);
+          wx.navigateToMiniProgram({
+            appId: VIP_APP_ID,
+            path: authPath,
+            fail: (err) => {
+              console.error('[Index] 跳转唯品会授权页失败:', err);
+              wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
+            },
+          });
+          return;
+        }
+
+        // Step 3: 已授权，转链后跳转唯品会小程序
+        const res = await convertLink(url, uid);
+        if (!res || res.code !== 0 || !res.data || !res.data.weapp_url) {
+          console.error('[Index] 唯品会坑位转链失败:', res);
+          wx.showToast({ title: '获取推广链接失败，请稍后重试', icon: 'none' });
+          return;
+        }
+
+        const weappUrl = res.data.weapp_url;
+        console.log('[Index] 唯品会坑位小程序路径:', weappUrl);
+        wx.navigateToMiniProgram({
+          appId: VIP_APP_ID,
+          path: weappUrl,
+          fail: (err) => {
+            console.error('[Index] 跳转唯品会小程序失败:', err);
+            wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+          },
+        });
+      } catch (err) {
+        console.error('[Index] 唯品会坑位异常:', err);
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+        this._activityJumping = false;
+      }
+    },
+
+    /**
+     * 美团活动坑位：extra_id(actId) → /api/meituan/referral-link-by-act-id（带 uid）
+     * 取 referralLinkMap key=4 的小程序路径跳美团外卖小程序
+     */
+    async openMeituanActivity(item) {
+      const actId = item.extraId;
+      if (!actId) return;
+
+      // 转链依赖当前用户 uid，未登录先弹出登录
+      if (!this.ensureLogin(() => this.openMeituanActivity(item))) return;
+      if (this._activityJumping) return;
+      this._activityJumping = true;
+
+      wx.showLoading({ title: '获取推广链接...', mask: true });
+      try {
+        const res = await getMeituanReferralLink(actId);
+
+        if (!res || !res.success || !res.data || !res.data.referralLinkMap) {
+          console.error('[Index] 美团活动转链失败:', res);
+          wx.showToast({ title: '获取推广链接失败，请稍后重试', icon: 'none' });
+          return;
+        }
+
+        const miniProgramPath = res.data.referralLinkMap[MINI_PROGRAM_LINK_KEY];
+        if (!miniProgramPath) {
+          wx.showToast({ title: '该活动暂不支持跳转', icon: 'none' });
+          return;
+        }
+
+        console.log('[Index] 跳转美团小程序, 活动路径:', miniProgramPath);
+        wx.navigateToMiniProgram({
+          appId: MEITUAN_APP_ID,
+          path: miniProgramPath,
+          fail: (err) => {
+            console.error('[Index] 跳转美团小程序失败:', err);
+            wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+          },
+        });
+      } catch (err) {
+        console.error('[Index] 美团活动转链异常:', err);
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+        this._activityJumping = false;
+      }
     },
 
     // ==================== 登录 ====================
 
     /**
-     * 确保用户已登录，未登录则弹出登录弹窗并存储回调
+     * 确保用户已授权登录并持有真实 uid，否则弹出手机号登录弹窗并存储回调
+     * 转链接口（referral-link-by-act-id / tranUrl）都依赖当前用户 uid：
+     * 仅 isLogin 不代表授权完成（静默登录可能没带出 userId），必须同时校验 userId
      * @param {Function} callback - 登录成功后要执行的回调
-     * @returns {boolean} true=已登录可直接执行，false=已拦截需等待登录
+     * @returns {boolean} true=已授权可直接执行，false=已拦截需等待登录
      */
     ensureLogin(callback) {
       const app = getApp();
-      if (app.globalData.needPhoneLogin && !app.globalData.isLogin) {
+      if (!app.globalData.isLogin || !app.globalData.userId) {
         this._pendingAction = callback;
         this.setData({ showLoginModal: true });
         return false;
       }
       return true;
     },
+
+    /**
+     * 空事件处理（阻止登录弹窗内触摸冒泡）
+     */
+    noop() {},
 
     /**
      * 关闭登录弹窗（同时清除待执行动作）
@@ -405,122 +614,218 @@ Component({
     },
 
     /**
-     * 页面触底加载更多
+     * 页面触底加载更多（唯品好货支持 offset 分页；美团热销接口暂不分页）
      */
     onReachBottom() {
-      this.loadMoreGoods();
+      if (this.data.activeTab === 1) {
+        this.loadMoreVipGoods();
+      }
     },
 
-    // ==================== 商品列表 ====================
+    // ==================== 商品列表（双 tab） ====================
 
     /**
-     * 加载商品列表（首页）
+     * 切换商品 tab
+     * @param {Event} e - data-tab: 1=唯品好货 2=美团热销
      */
-    async loadGoodsList() {
-      if (this.data.goodsLoading) return;
-      this.setData({ goodsLoading: true });
+    onSwitchTab(e) {
+      const tab = Number(e.currentTarget.dataset.tab);
+      if (!tab || tab === this.data.activeTab) return;
+      this.setData({ activeTab: tab });
+      // 美团热销首次进入才按定位加载
+      if (tab === 2 && !this.data.mtLoaded && !this.data.mtLoading) {
+        this.loadMeituanGoods();
+      }
+    },
+
+    /**
+     * 加载唯品好货第一页（tab=1）
+     */
+    async loadVipGoods() {
+      if (this.data.vipLoading) return;
+      this.setData({ vipLoading: true });
 
       try {
-        const res = await getGoodsList({
-          jxCode: '4fepozbz',
+        const res = await fetchVipIndexGoods({
+          jxCode: '4vojhsp2',
           offset: 0,
-          pageSize: this.data.goodsPageSize,
+          pageSize: this.data.vipPageSize,
         });
 
-        console.log('[Index] getGoodsList 原始响应:', res);
-
-        if (res && res.returnCode === '0' && res.result) {
-          const list = res.result.goodsInfoList || [];
-          console.log('[Index] 提取到商品列表，数量:', list.length);
-          this.setData({
-            productList: this.formatGoodsList(list),
-            goodsOffset: res.result.nextPageOffset || 0,
-            goodsHasMore: !res.result.lastPage,
-            goodsLoading: false,
-          });
-        } else {
-          console.warn('[Index] getGoodsList 返回无效');
-          this.setData({ goodsLoading: false });
-        }
+        console.log('[Index] loadVipGoods 商品数:', res.list.length, 'hasMore:', res.hasMore);
+        this.setData({
+          vipList: this.formatGoodsList(res.list),
+          vipOffset: res.nextOffset,
+          vipHasMore: res.hasMore,
+          vipLoading: false,
+        });
       } catch (err) {
-        console.error('[Index] 加载商品列表失败:', err);
-        this.setData({ goodsLoading: false });
+        console.error('[Index] 加载唯品好货失败:', err);
+        this.setData({ vipLoading: false });
       }
     },
 
     /**
-     * 加载更多商品
+     * 唯品好货翻页（触底加载更多）
      */
-    async loadMoreGoods() {
-      const { goodsLoading, goodsHasMore, goodsOffset, goodsPageSize, productList } = this.data;
-      if (goodsLoading || !goodsHasMore) return;
+    async loadMoreVipGoods() {
+      const { vipLoading, vipHasMore, vipOffset, vipPageSize, vipList } = this.data;
+      if (vipLoading || !vipHasMore) return;
 
-      console.log('[Index] loadMoreGoods offset:', goodsOffset);
-      this.setData({ goodsLoading: true });
+      console.log('[Index] loadMoreVipGoods offset:', vipOffset);
+      this.setData({ vipLoading: true });
 
       try {
-        const res = await getGoodsList({
-          jxCode: '4fepozbz',
-          offset: goodsOffset,
-          pageSize: goodsPageSize,
+        const res = await fetchVipIndexGoods({
+          jxCode: '4vojhsp2',
+          offset: vipOffset,
+          pageSize: vipPageSize,
         });
 
-        console.log('[Index] loadMoreGoods 响应:', res);
-
-        if (res && res.returnCode === '0' && res.result) {
-          const list = res.result.goodsInfoList || [];
-          this.setData({
-            productList: [...productList, ...this.formatGoodsList(list)],
-            goodsOffset: res.result.nextPageOffset || goodsOffset,
-            goodsHasMore: !res.result.lastPage,
-            goodsLoading: false,
-          });
-        } else {
-          this.setData({ goodsLoading: false });
-        }
+        console.log('[Index] loadMoreVipGoods 新增:', res.list.length);
+        this.setData({
+          vipList: [...vipList, ...this.formatGoodsList(res.list)],
+          vipOffset: res.nextOffset,
+          vipHasMore: res.hasMore,
+          vipLoading: false,
+        });
       } catch (err) {
-        console.error('[Index] 加载更多失败:', err);
-        this.setData({ goodsLoading: false });
+        console.error('[Index] 唯品好货翻页失败:', err);
+        this.setData({ vipLoading: false });
       }
     },
 
     /**
-     * 格式化商品列表：映射唯品会接口字段
+     * 加载美团热销（tab=2，一次请求，携带首页定位经纬度）
+     */
+    async loadMeituanGoods() {
+      if (this.data.mtLoading) return;
+      this.setData({ mtLoading: true });
+
+      try {
+        const { longitude, latitude } = this.data;
+        const res = await fetchMeituanIndexGoods({ longitude, latitude });
+
+        console.log('[Index] loadMeituanGoods 商品数:', res.list.length);
+        this.setData({
+          mtList: this.formatMeituanList(res.list),
+          mtLoaded: true,
+          mtLoading: false,
+        });
+      } catch (err) {
+        console.error('[Index] 加载美团热销失败:', err);
+        this.setData({ mtLoading: false });
+      }
+    },
+
+    /**
+     * 格式化唯品会商品（tab=1）
      */
     formatGoodsList(list) {
       if (!Array.isArray(list)) return [];
       return list.map(item => {
         const price = parseFloat(item.vipPrice || item.price) || 0;
         const originalPrice = parseFloat(item.marketPrice || item.originalPrice) || 0;
-        const commission = parseFloat(item.commission) || 0;
         return {
           id: item.goodsId || item.id || '',
+          type: 'vip',
           title: item.goodsName || item.title || '',
-          image: item.goodsMainPicture || item.goodsThumbUrl || item.image || '',
+          image: item.goodsMainPicture || item.goodsThumbUrl || item.whiteImage || item.image || '',
           price: price,
-          priceText: '¥' + price.toFixed(2),
+          priceText: price > 0 ? '¥' + price.toFixed(2) : '',
           originalPrice: originalPrice,
           originalPriceText: originalPrice > price ? '¥' + originalPrice.toFixed(2) : '',
-          rebate: commission,
-          rebateText: commission > 0 ? '返¥' + commission.toFixed(2) : '',
         };
       });
     },
 
     /**
-     * 点击商品，直接跳转商品详情（不做强制登录校验）
+     * 格式化美团热销商品（tab=2）：美团团购字段 → 双列卡展示结构
      */
-    onGoodsTap(e) {
-      const { id } = e.currentTarget.dataset;
-      if (!id) return;
-      this._doGoodsTap(id);
+    formatMeituanList(list) {
+      if (!Array.isArray(list)) return [];
+      return list.map(item => {
+        const price = parseFloat(item.price) || 0;
+        const originalPrice = parseFloat(item.originalPrice) || 0;
+        return {
+          id: item.skuViewId || item.productViewSign || '',
+          sign: item.productViewSign || '',
+          type: 'meituan',
+          title: item.title || '',
+          image: item.image || '',
+          subtitle: [item.poiName, item.brandName].filter(Boolean).join(' · '),
+          priceText: price > 0 ? '¥' + price.toFixed(2) : '',
+          originalPriceText: originalPrice > price ? '¥' + originalPrice.toFixed(2) : '',
+        };
+      });
     },
 
     /**
-     * 商品点击核心逻辑
+     * 点击商品卡片：唯品好货跳详情页，美团热销转链后跳美团小程序
      */
-    _doGoodsTap(id) {
+    onGoodsTap(e) {
+      const { item } = e.currentTarget.dataset;
+      if (!item) return;
+      if (item.type === 'meituan') {
+        this.openMeituanGoods(item);
+        return;
+      }
+      this._doVipGoodsTap(item.id);
+    },
+
+    /**
+     * 唯品好货：进入商品详情页
+     */
+    _doVipGoodsTap(id) {
+      if (!id) return;
       wx.navigateTo({ url: `/pages/goods/goods?id=${id}` });
+    },
+
+    /**
+     * 美团热销：转链后跳转美团外卖小程序（与吃喝玩乐页逻辑一致）
+     */
+    async openMeituanGoods(item) {
+      const sign = item && item.sign;
+      if (!sign) {
+        wx.showToast({ title: '商品信息缺失', icon: 'none' });
+        return;
+      }
+
+      // 转链需要用户 uid，未登录先弹出登录
+      if (!this.ensureLogin(() => this.openMeituanGoods(item))) return;
+
+      if (this.data.mtJumping) return;
+      this.setData({ mtJumping: true });
+
+      wx.showLoading({ title: '获取推广链接...', mask: true });
+      const res = await getMeituanGoodsReferralLink(sign);
+      wx.hideLoading();
+      this.setData({ mtJumping: false });
+
+      if (!res || !res.success || !res.data || !res.data.referralLinkMap) {
+        console.error('[Index] 美团商品转链失败:', res);
+        wx.showToast({ title: '获取推广链接失败，请稍后重试', icon: 'none' });
+        return;
+      }
+
+      const miniProgramPath = res.data.referralLinkMap[MINI_PROGRAM_LINK_KEY];
+      if (!miniProgramPath) {
+        wx.showToast({ title: '该商品暂不支持跳转', icon: 'none' });
+        return;
+      }
+
+      console.log('[Index] 跳转美团小程序, 商品推广路径:', miniProgramPath);
+      wx.navigateToMiniProgram({
+        appId: MEITUAN_APP_ID,
+        path: miniProgramPath,
+        success: () => {
+          console.log('[Index] 美团商品跳转成功');
+        },
+        fail: (err) => {
+          console.error('[Index] 美团商品跳转失败:', err);
+          wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+        },
+      });
     },
 
     // ==================== 其他 ====================

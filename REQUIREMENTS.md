@@ -1,6 +1,6 @@
 # 惠更好 (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.10.7  
+> 多平台 CPS 返利小程序 | 版本 v0.10.8  
 > 最后更新：2026-09-06
 
 ---
@@ -96,7 +96,7 @@ huigenghao/
 - **顶部布局**：移除独立标题导航栏，页面内容从屏幕最顶开始；搜索框置顶固定（`position: sticky`），头部整块主色 `#81D8CF` 背景（无渐变，含状态栏区域），顶部间距动态读取胶囊按钮上边缘使其与搜索框同高、水平对齐，右侧自动避让胶囊宽度，页面滑动时头部固定不随内容滚动
 - 搜索入口：点击置顶搜索框（占位文案「搜索全网好物」）跳转商品搜索页
 - 转链按钮文案「查找专属优惠」（转换中显示「正在转换...」）；下方「粘贴链接」「平台入口」区块收窄为主色系圆角留白卡片
-- **精选好物**：调用 `GET /api/goodsList` 接口，双列瀑布流展示推荐商品，点击卡片跳转商品详情页；卡片隐藏返利金额标签
+- **精选好物（唯品好货 / 美团热销双 tab）**：精选好物区改为两个 tab——左侧「唯品好货」调用 `GET http://localhost:3000/api/indexList?tab=1&jxCode=4vojhsp2&offset=0&pageSize=10`，携带 `offset/nextPageOffset` 触底翻页加载唯品会推荐，双列瀑布流展示（券后价 + 删除线原价），点击卡片跳商品详情页；右侧「美团热销」调用 `GET http://localhost:3000/api/indexList?tab=2&longitude=..&latitude=..&platform=2&listTopiId=2`，携带首页模糊定位经纬度加载附近美团热销团购（接口一次返回暂不分页），卡片展示主图/标题/门店·品牌/券后价/原价，点击经 `getMeituanGoodsReferralLink` 转链后跳美团小程序；两 tab 数据源为同一聚合接口 `/api/indexList`（本地联调地址，上线前替换正式域名），首次进入页面默认加载唯品好货，切换美团热销时首次才发起请求
 - **链接转换**：支持粘贴拼多多和唯品会商品链接，调 `GET /api/tranUrl` 获取推广链接（h5_url/weapp_url/deeplink_url），每个链接独立可复制；输入框占位文案「粘贴淘宝/唯品会/京东/拼多多/抖音 链接查找优惠」，输入区为压缩高度圆角灰底卡片
 - **今日最优惠活动**：原「电商购物」五个 icon 入口下线，改为首页一行三个 banner 坑位（外层不再展示区块大标题），每张卡片结构为「左侧彩色圆 icon + 主标题 + 子标题 + 商品大图」，三段式纵向布局；数据由接口下发（接口正在开发中，期望响应 `[{ id, iconBg, icon, title, subtitle, image, link?, targetType? }]`，最多取前 3 个），对接完成后在 `attached` 启用 `loadActivityBanners()`；接口未就绪前展示三条内置占位数据，缺图时显示「商品图占位」色块
   - 唯品会 appId: `wxe9714e742209d35f`
@@ -696,6 +696,7 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-09-06 | v0.10.8 | **首页精选好物改为双 tab**：「唯品好货 / 美团热销」共用聚合接口 `GET /api/indexList` 各请求一次——tab=1 带 `jxCode=4vojhsp2&offset&pageSize` 按 offset 触底翻页（返回 `returnCode:0/result{goodsInfoList,nextPageOffset,lastPage}`）；tab=2 带首页定位 `longitude/latitude/platform=2/listTopiId=2` 一次加载（返回 `code:0/data[]`），卡片为美团团购结构（主图/标题/门店·品牌/券后价/原价），点击经转链跳美团小程序；首页进入默认加载唯品好货、首次切美团热销才发定位请求；首页打开同时获取模糊定位经纬度缓存备用 | [3.1](#31-首页-pagesindex-) |
 | 2026-09-06 | v0.10.7 | **今日最优惠活动 banner 结构定型**：按截图样式把每个坑位改为「标题 + 子标题 + 商品大图」三段式卡片，移除区块大标题；数据契约同步扩展为 `{ id, iconBg, icon, title, subtitle, image }`；内置三条占位数据（限时狂秒 / 3折疯抢 / 天天低价）方便预览，缺图时降级为「商品图占位」色块 | [3.1](#31-首页-pagesindex-) |
 | 2026-09-06 | v0.10.6 | **首页入口重构：电商购物 → 今日最优惠活动**：原「电商购物」五个 icon（唯品会/拼多多/淘宝/京东/抖音商城）下线，改为标题「今日最优惠活动」+ 一行三个 banner 坑位（图标 + 促销文案）；数据接口开发中，先保留占位 UI 与数据契约（`[{ id, image, title }]`），连带清理首页 `platforms` 数据、`onPlatformTap`/`jumpToThirdPlatform` 等死代码与「未授权」授权弹窗 | [3.1](#31-首页-pagesindex-) |
 | 2026-09-06 | v0.10.5 | **全页面支持转发（我的订单除外）**：首页、吃喝玩乐、商品详情、搜索、日志页均支持右上角转发给好友/分享到朋友圈；商品详情转发携带 `id`，搜索转发携带 `keyword+platform` 且对方打开自动搜索；`pages/orders` 不实现分享钩子保持不可转发 | [3.1](#31-首页-pagesindex-)、[3.2](#32-吃喝玩乐页-pageslife-)、[3.3](#33-商品搜索列表页-pagessearch-)、[3.5](#35-商品详情页-pagesgoods-)、[3.7](#37-启动日志页-pageslogs-) |

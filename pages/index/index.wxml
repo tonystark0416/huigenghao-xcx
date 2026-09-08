@@ -65,9 +65,9 @@
     <button class="result-copy-btn" bindtap="onCopyLink">一键复制推广链接</button>
   </view>
 
-  <!-- 今日最优惠活动（接口待对接，先展示三条占位 banner） -->
-  <view class="activity-section">
-    <view class="activity-grid" wx:if="{{activityBanners.length > 0}}">
+  <!-- 今日最优惠活动：数据来自接口；不足两条或接口异常时整区隐藏 -->
+  <view class="activity-section" wx:if="{{activityBanners.length >= 2}}">
+    <view class="activity-grid">
       <view
         class="activity-card"
         wx:for="{{activityBanners}}"
@@ -75,69 +75,114 @@
         data-item="{{item}}"
         bindtap="onActivityTap"
       >
-        <!-- 标题行：左侧彩色圆 icon + 右侧标题/子标题 -->
-        <view class="activity-head">
-          <view class="activity-icon" style="background: {{item.iconBg}};">
-            <text class="activity-icon-text">{{item.icon}}</text>
-          </view>
-          <view class="activity-head-text">
-            <text class="activity-title">{{item.title}}</text>
-            <text class="activity-subtitle">{{item.subtitle}}</text>
-          </view>
-        </view>
-        <!-- 图片区：有图渲染 image，否则占位 -->
+        <!-- 左：商品大图（有图渲染 image，否则占位） -->
         <view class="activity-image">
-          <image wx:if="{{item.image}}" class="activity-image-img" src="{{item.image}}" mode="widthFix" />
+          <image wx:if="{{item.image}}" class="activity-image-img" src="{{item.image}}" mode="aspectFit" />
           <view wx:else class="activity-image-placeholder">
             <text>商品图占位</text>
           </view>
         </view>
-      </view>
-    </view>
-    <view class="activity-empty" wx:else>
-      <text>活动即将上线，敬请期待</text>
-    </view>
-  </view>
-
-  <!-- 瀑布流商品列表 -->
-  <view class="goods-section">
-    <view class="section-title">精选好物</view>
-
-    <!-- 加载中 -->
-    <view class="goods-status" wx:if="{{goodsLoading && productList.length === 0}}">
-      <text>正在加载商品...</text>
-    </view>
-
-    <!-- 空数据 -->
-    <view class="goods-status" wx:if="{{!goodsLoading && productList.length === 0}}">
-      <text>暂无商品数据</text>
-    </view>
-
-    <view class="waterfall-grid" wx:if="{{productList.length > 0}}">
-      <view
-        class="goods-card"
-        wx:for="{{productList}}"
-        wx:key="id"
-        data-id="{{item.id}}"
-        bindtap="onGoodsTap"
-      >
-        <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
-        <view class="goods-info">
-          <text class="goods-title">{{item.title}}</text>
-          <view class="goods-price-row">
-            <text class="goods-price">{{item.priceText}}</text>
-            <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
-          </view>
+        <!-- 右：标题/子标题 -->
+        <view class="activity-head-text">
+          <text class="activity-title">{{item.title}}</text>
+          <text class="activity-subtitle">{{item.subtitle}}</text>
         </view>
       </view>
     </view>
+  </view>
 
-    <view class="goods-loading" wx:if="{{goodsLoading && productList.length > 0}}">
-      <text>加载中...</text>
+  <!-- 精选商品：唯品好货 / 美团热销 双 tab -->
+  <view class="goods-section">
+    <!-- tab 切换 -->
+    <view class="goods-tabs">
+      <view
+        class="goods-tab {{activeTab === 1 ? 'goods-tab-active' : ''}}"
+        data-tab="1"
+        bindtap="onSwitchTab"
+      >唯品好货</view>
+      <view
+        class="goods-tab {{activeTab === 2 ? 'goods-tab-active' : ''}}"
+        data-tab="2"
+        bindtap="onSwitchTab"
+      >美团热销</view>
     </view>
-    <view class="goods-end" wx:if="{{!goodsHasMore && productList.length > 0}}">
-      <text>— 已经到底了 —</text>
-    </view>
+
+    <!-- ==================== 唯品好货（tab=1） ==================== -->
+    <block wx:if="{{activeTab === 1}}">
+      <!-- 首次加载中 -->
+      <view class="goods-status" wx:if="{{vipLoading && vipList.length === 0}}">
+        <text>正在加载商品...</text>
+      </view>
+      <!-- 空数据 -->
+      <view class="goods-status" wx:elif="{{vipList.length === 0}}">
+        <text>暂无商品数据</text>
+      </view>
+      <!-- 商品瀑布流 -->
+      <view class="waterfall-grid" wx:else>
+        <view
+          class="goods-card"
+          wx:for="{{vipList}}"
+          wx:key="id"
+          data-item="{{item}}"
+          bindtap="onGoodsTap"
+        >
+          <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
+          <view class="goods-info">
+            <text class="goods-title">{{item.title}}</text>
+            <view class="goods-price-row">
+              <text class="goods-price">{{item.priceText}}</text>
+              <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <!-- 触底加载中 / 到底 -->
+      <view class="goods-loading" wx:if="{{vipLoading && vipList.length > 0}}">
+        <text>加载中...</text>
+      </view>
+      <view class="goods-end" wx:if="{{!vipHasMore && vipList.length > 0}}">
+        <text>— 已经到底了 —</text>
+      </view>
+    </block>
+
+    <!-- ==================== 美团热销（tab=2） ==================== -->
+    <block wx:else>
+      <!-- 首次加载中 -->
+      <view class="goods-status" wx:if="{{mtLoading && mtList.length === 0}}">
+        <text>正在加载附近热销...</text>
+      </view>
+      <!-- 空数据 -->
+      <view class="goods-status" wx:elif="{{mtLoaded && mtList.length === 0}}">
+        <text>附近暂无热销好券，去吃喝玩乐看看吧</text>
+      </view>
+      <!-- 商品瀑布流 -->
+      <view class="waterfall-grid" wx:else>
+        <view
+          class="goods-card"
+          wx:for="{{mtList}}"
+          wx:key="id"
+          data-item="{{item}}"
+          bindtap="onGoodsTap"
+        >
+          <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
+          <view class="goods-info">
+            <text class="goods-title">{{item.title}}</text>
+            <text class="goods-subtitle" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
+            <view class="goods-price-row">
+              <text class="goods-price">{{item.priceText}}</text>
+              <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <!-- 美团热销一次加载完成，展示推荐底标 -->
+      <view class="goods-loading" wx:if="{{mtLoading && mtList.length > 0}}">
+        <text>加载中...</text>
+      </view>
+      <view class="goods-end" wx:if="{{mtLoaded && mtList.length > 0}}">
+        <text>— 已为你推荐附近热销 —</text>
+      </view>
+    </block>
   </view>
 </view>
 

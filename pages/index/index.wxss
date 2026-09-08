@@ -216,7 +216,7 @@ page {
   border: none;
 }
 
-/* 今日最优惠活动（三个 banner 坑位：标题 + 子标题 + 大图） */
+/* 今日最优惠活动（两坑位横排：左图 + 右侧标题/子标题） */
 .activity-section {
   margin: 0 24rpx 16rpx;
 }
@@ -230,34 +230,11 @@ page {
   flex: 1;
   background: #fff;
   border-radius: 16rpx;
-  padding: 16rpx;
+  padding: 12rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
   display: flex;
-  flex-direction: column;
-}
-
-.activity-head {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 12rpx;
-}
-
-.activity-icon {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  margin-right: 12rpx;
-  flex-shrink: 0;
-}
-
-.activity-icon-text {
-  font-size: 22rpx;
-  font-weight: bold;
-  color: #fff;
-  line-height: 1;
+  min-width: 0;
 }
 
 .activity-head-text {
@@ -268,32 +245,41 @@ page {
 }
 
 .activity-title {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: bold;
   color: #333;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .activity-subtitle {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: #999;
   margin-top: 4rpx;
   line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .activity-image {
-  width: 100%;
+  width: 128rpx;
+  height: 128rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
 }
 
 .activity-image-img {
   width: 100%;
+  height: 100%;
   display: block;
-  border-radius: 8rpx;
 }
 
 .activity-image-placeholder {
   width: 100%;
-  height: 220rpx;
+  height: 100%;
   background: linear-gradient(135deg, #f5f7f8, #e9eef0);
   border-radius: 8rpx;
   display: flex;
@@ -306,16 +292,36 @@ page {
   color: #999;
 }
 
-.activity-empty {
-  padding: 16rpx 0 8rpx;
-  text-align: center;
-  font-size: 24rpx;
-  color: #999;
-}
-
 /* 瀑布流商品列表 */
 .goods-section {
   padding: 28rpx 24rpx 60rpx 24rpx;
+}
+
+/* 商品双 tab 切换栏 */
+.goods-tabs {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  padding: 8rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.goods-tab {
+  flex: 1;
+  height: 64rpx;
+  line-height: 64rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #666;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+}
+
+.goods-tab-active {
+  color: #fff;
+  font-weight: bold;
+  background: linear-gradient(135deg, #17b3a5, #0ea294);
 }
 
 .waterfall-grid {
@@ -350,7 +356,18 @@ page {
   -webkit-line-clamp: 2;
   overflow: hidden;
   line-height: 1.4;
-  margin-bottom: 12rpx;
+  margin-bottom: 6rpx;
+}
+
+.goods-subtitle {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.3;
+  margin-bottom: 10rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .goods-price-row {

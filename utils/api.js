@@ -446,17 +446,20 @@ async function getGoodsList({ jxCode = '4vojhsp2', offset = 0, pageSize = 10 } =
 
 // ==================== 第三方授权 ====================
 
-const THIRD_PID = '43384525_317172887';
-
 /**
  * 校验第三方平台是否已授权
- * GET /api/thirdAuth/checkAuth?uid=xxx&pid=xxx
+ * GET /api/thirdAuth/checkAuth?uid=xxx&platform=xxx[&pid=xxx]
  * @param {string} uid - 用户标识
- * @param {string} pid - 推广位ID，默认 gh_8ed2afad9972
+ * @param {string} platform - 平台标识（如 vip）
+ * @param {string} [pid] - 推广位ID，可不传
  */
-async function checkAuth(uid, platform, pid = THIRD_PID) {
+async function checkAuth(uid, platform, pid) {
   try {
-    const query = `uid=${uid || ''}&platform=${platform}&pid=${pid}`;
+    const query = [
+      `uid=${uid || ''}`,
+      platform ? `platform=${platform}` : '',
+      pid ? `pid=${pid}` : '',
+    ].filter(Boolean).join('&');
     const fullRes = await new Promise((resolve, reject) => {
       wx.request({
         url: `${BASE_URL}/api/thirdAuth/checkAuth?${query}`,
@@ -476,13 +479,18 @@ async function checkAuth(uid, platform, pid = THIRD_PID) {
 
 /**
  * 生成第三方平台授权链接
- * GET /api/thirdAuth/genAuthUrl?uid=xxx&pid=xxx
+ * GET /api/thirdAuth/genAuthUrl?uid=xxx&platform=xxx[&pid=xxx]
  * @param {string} uid - 用户标识
- * @param {string} pid - 推广位ID，默认 gh_8ed2afad9972
+ * @param {string} platform - 平台标识（如 vip）
+ * @param {string} [pid] - 推广位ID，可不传
  */
-async function genAuthUrl(uid, platform, pid = THIRD_PID) {
+async function genAuthUrl(uid, platform, pid) {
   try {
-    const query = `uid=${uid || ''}&platform=${platform}&pid=${pid}`;
+    const query = [
+      `uid=${uid || ''}`,
+      platform ? `platform=${platform}` : '',
+      pid ? `pid=${pid}` : '',
+    ].filter(Boolean).join('&');
     const result = await request(`${BASE_URL}/api/thirdAuth/genAuthUrl?${query}`);
     console.log('[API] genAuthUrl 响应:', result);
     return result;
@@ -678,6 +686,24 @@ async function getBanners() {
 }
 
 /**
+ * 获取首页「最优惠活动」坑位列表
+ * GET /api/banner/indexBannerList
+ * 返回字段：{ id, type, title, sub_text, banner_img_url, extra_id, extra_url, sort }
+ * @returns {Promise<Array>} 已按 sort 降序的数组；接口异常或结构异常返回 []
+ */
+async function getIndexActivityBanners() {
+  try {
+    const result = await request(`${BASE_URL}/api/banner/indexBannerList`);
+    console.log('[API] getIndexActivityBanners 响应:', JSON.stringify(result));
+    const arr = Array.isArray(result) ? result : result && Array.isArray(result.data) ? result.data : [];
+    return arr.slice().sort((a, b) => (b.sort || 0) - (a.sort || 0));
+  } catch (err) {
+    console.warn('[API] getIndexActivityBanners 失败:', err.message);
+    return [];
+  }
+}
+
+/**
  * 获取美团活动转链（referralLinkMap 中 key=4 为小程序路径）
  * GET /api/meituan/referral-link-by-act-id?actId=xxx&uid=xxx
  * @param {string|number} actId - 活动 ID（banner 的 extra_id）
@@ -821,6 +847,88 @@ async function searchMeituanGoods({ searchText = '', longitude = '', latitude = 
   }
 }
 
+// ==================== 首页聚合列表 /api/indexList ====================
+
+/**
+ * 首页聚合列表服务
+ * 「唯品好货」与「美团热销」共用该接口，通过 tab 区分
+ */
+const INDEX_LIST_BASE_URL = 'https://hgh.pangpai-car.com';
+
+/**
+ * 组装 GET query 串（跳过 undefined/null/''）
+ */
+function buildQuery(params) {
+  return Object.keys(params || {})
+    .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== '')
+    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+    .join('&');
+}
+
+/**
+ * 首页 - 唯品好货（tab=1），offset 分页
+ * GET {base}/api/indexList?tab=1&jxCode=4vojhsp2&offset=0&pageSize=10
+ * 返回 { returnCode:'0', result:{ goodsInfoList, nextPageOffset, lastPage } }
+ *
+ * @param {Object} params
+ * @param {string} [params.jxCode='4vojhsp2'] - 精选 code
+ * @param {number} [params.offset=0] - 偏移量
+ * @param {number} [params.pageSize=10] - 每页条数
+ * @returns {Promise<{list: Array, hasMore: boolean, nextOffset: number}>}
+ */
+async function fetchVipIndexGoods({ jxCode = '4vojhsp2', offset = 0, pageSize = 10 } = {}) {
+  try {
+    const url = `${INDEX_LIST_BASE_URL}/api/indexList?${buildQuery({ tab: 1, jxCode, offset, pageSize })}`;
+    console.log('[API] fetchVipIndexGoods 请求URL:', url);
+    const result = await request(url);
+
+    const r = result && result.returnCode === '0' && result.result ? result.result : null;
+    if (!r || !Array.isArray(r.goodsInfoList)) {
+      console.warn('[API] fetchVipIndexGoods 返回异常:', result);
+      return { list: [], hasMore: false, nextOffset: offset };
+    }
+
+    return {
+      list: r.goodsInfoList,
+      hasMore: !r.lastPage,
+      nextOffset: r.nextPageOffset != null ? r.nextPageOffset : offset + pageSize,
+    };
+  } catch (err) {
+    console.warn('[API] fetchVipIndexGoods 失败:', err.message);
+    return { list: [], hasMore: false, nextOffset: offset };
+  }
+}
+
+/**
+ * 首页 - 美团热销（tab=2），按定位一次返回（暂不分页）
+ * GET {base}/api/indexList?tab=2&longitude=..&latitude=..&platform=2&listTopiId=2
+ * 返回 { code:0, data:[{ brandInfo, commissionInfo, couponPackDetail, deliverablePoiInfo, ... }] }
+ *
+ * @param {Object} params
+ * @param {string} [params.longitude=''] - 经度
+ * @param {string} [params.latitude=''] - 纬度
+ * @param {number} [params.platform=2] - 平台标识
+ * @param {number} [params.listTopiId=2] - 主题 id
+ * @returns {Promise<{list: Array}>} list 已按 mapMeituanGoods 映射
+ */
+async function fetchMeituanIndexGoods({ longitude = '', latitude = '', platform = 2, listTopiId = 2 } = {}) {
+  try {
+    const url = `${INDEX_LIST_BASE_URL}/api/indexList?${buildQuery({ tab: 2, longitude, latitude, platform, listTopiId })}`;
+    console.log('[API] fetchMeituanIndexGoods 请求URL:', url);
+    const result = await request(url);
+
+    if (!result || result.code !== 0 || !Array.isArray(result.data)) {
+      console.warn('[API] fetchMeituanIndexGoods 返回异常:', result);
+      return { list: [] };
+    }
+
+    return { list: result.data.map(mapMeituanGoods) };
+  } catch (err) {
+    console.warn('[API] fetchMeituanIndexGoods 失败:', err.message);
+    return { list: [] };
+  }
+}
+
 // ==================== 订单列表 ====================
 
 /**
@@ -896,6 +1004,8 @@ module.exports = {
   searchProducts,
   getProductDetail,
   getGoodsList,
+  fetchVipIndexGoods,
+  fetchMeituanIndexGoods,
   loginByOpenid,
   checkAuth,
   genAuthUrl,
@@ -904,6 +1014,7 @@ module.exports = {
   getGoodsTranUrlByGoodsId,
   detectPlatform,
   getBanners,
+  getIndexActivityBanners,
   getMeituanReferralLink,
   getMeituanGoodsReferralLink,
   searchMeituanGoods,
