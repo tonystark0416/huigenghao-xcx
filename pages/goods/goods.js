@@ -1,8 +1,16 @@
 // pages/goods/goods.js
-const { getProductDetail, getGoodsTranUrlByGoodsId, setUserConfig } = require('../../utils/api');
+const {
+  getProductDetail,
+  getGoodsTranUrlByGoodsId,
+  setUserConfig,
+  checkAuth,
+  genAuthUrl,
+} = require('../../utils/api');
 
 // 唯品会小程序 appId
 const VIP_APP_ID = 'wxe9714e742209d35f';
+// 唯品会第三方授权平台标识（/api/thirdAuth/* 的 platform 参数）
+const VIP_AUTH_PLATFORM = 'vip';
 
 Component({
   properties: {
@@ -22,6 +30,8 @@ Component({
     loading: true,
     goods: null,
     showLoginModal: false,
+    // 唯品会第三方授权提示弹窗（前往购买需校验唯品会授权）
+    showVipAuthModal: false,
     // 悬浮返回按钮的 top 值（与胶囊垂直居中对齐）
     navBackStyle: '',
   },
@@ -130,11 +140,12 @@ Component({
 
     /**
      * 确保用户已登录，未登录则弹出登录弹窗并存储回调
-     * 前往购买需要 uid 传给转链接口，因此强制校验
+     * 前往购买需要 uid 传给转链接口，因此强制校验；
+     * 仅 isLogin 不代表授权完成（静默登录可能没带出 userId），必须同时校验 userId
      */
     ensureLogin(callback) {
       const app = getApp();
-      if (app.globalData.needPhoneLogin && !app.globalData.isLogin) {
+      if (!app.globalData.isLogin || !app.globalData.userId) {
         this._pendingAction = callback;
         this.setData({ showLoginModal: true });
         return false;
@@ -148,6 +159,80 @@ Component({
     closeLoginModal() {
       this._pendingAction = null;
       this.setData({ showLoginModal: false });
+    },
+
+    /**
+     * 校验唯品会第三方授权状态：
+     * 已授权直接返回 true；未授权则弹出授权提示窗（不直接跳转），返回 false
+     * @param {string} uid - 当前用户 uid
+     * @returns {Promise<boolean>}
+     */
+    async ensureVipAuthed(uid) {
+      const authRes = await checkAuth(uid, VIP_AUTH_PLATFORM);
+      console.log('[Goods] 唯品会授权状态响应:', authRes);
+      // 真实结构示例: { result: true, authStatus: { isAuth: true } }
+      // 兼容顶层 isAuth / authStatus.isAuth / data.isAuth / result 多种返回
+      const authBody = authRes && (authRes.authStatus || authRes.data || authRes);
+      const authFlag = authBody && (authBody.isAuth !== undefined ? authBody.isAuth : (authRes && authRes.result));
+      const authed = authFlag === true || authFlag === 1 || authFlag === '1' || authFlag === 'true';
+      if (authed) return true;
+      // 未授权：弹窗提示用户去授权
+      console.log('[Goods] 唯品会未授权，弹出授权提示');
+      this.setData({ showVipAuthModal: true });
+      return false;
+    },
+
+    /**
+     * 关闭唯品会授权提示弹窗
+     */
+    closeVipAuthModal() {
+      this.setData({ showVipAuthModal: false });
+    },
+
+    /**
+     * 唯品会授权提示弹窗「去授权」：
+     * 先 /api/thirdAuth/genAuthUrl 获取小程序授权路径，再跳转唯品会小程序完成授权
+     */
+    async onConfirmVipAuth() {
+      if (this._authJumping) return;
+      this._authJumping = true;
+      this.setData({ showVipAuthModal: false });
+
+      const uid = getApp().globalData.userId || '';
+      if (!uid) {
+        this._authJumping = false;
+        wx.showToast({ title: '请先完成登录授权', icon: 'none' });
+        return;
+      }
+
+      wx.showLoading({ title: '获取授权链接...', mask: true });
+      try {
+        const urlRes = await genAuthUrl(uid, VIP_AUTH_PLATFORM);
+        // 真实结构示例: { result: true, authUrl: { h5_url, weapp_url, deeplink_url } }
+        // 用 weapp_url 跳唯品会小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
+        const urlBody = urlRes && (urlRes.authUrl || urlRes.data || urlRes);
+        const authPath = (urlBody && (urlBody.weapp_url || (urlBody.authUrl && urlBody.authUrl.weapp_url))) || '';
+        if (!authPath) {
+          console.error('[Goods] 获取唯品会授权链接失败:', urlRes);
+          wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
+          return;
+        }
+        console.log('[Goods] 跳转唯品会授权页, 路径:', authPath);
+        wx.navigateToMiniProgram({
+          appId: VIP_APP_ID,
+          path: authPath,
+          fail: (err) => {
+            console.error('[Goods] 跳转唯品会授权页失败:', err);
+            wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
+          },
+        });
+      } catch (err) {
+        console.error('[Goods] 获取唯品会授权链接异常:', err);
+        wx.showToast({ title: '获取授权链接失败，请重试', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+        this._authJumping = false;
+      }
     },
 
     noop() {},
@@ -338,7 +423,7 @@ Component({
       });
     },
 
-    // 前往购买：实时请求转链接口，按商品 ID 获取 weapp_url 跳转唯品会小程序
+    // 前往购买：先校验登录 + 唯品会第三方授权，通过后再请求转链接口跳转唯品会小程序
     async onBuyTap() {
       const { goods } = this.data;
       if (!goods || !goods.id) {
@@ -352,19 +437,26 @@ Component({
       if (this._buying) return;
       this._buying = true;
 
-      const uid = getApp().globalData.userId || getApp().globalData.openid || '';
+      const uid = getApp().globalData.userId || '';
+      if (!uid) {
+        wx.showToast({ title: '请先完成登录授权', icon: 'none' });
+        this._buying = false;
+        return;
+      }
 
-      wx.showLoading({ title: '获取推广链接...', mask: true });
+      wx.showLoading({ title: '请稍候...', mask: true });
 
       try {
+        // 唯品会第三方授权校验：未授权则弹窗提示去授权，拦截本次跳转
+        const authed = await this.ensureVipAuthed(uid);
+        if (!authed) return;
+
         const res = await getGoodsTranUrlByGoodsId({
           goodsId: goods.id,
           platform: goods.platform || 'vip',
           uid,
           pid: goods.pid || '',
         });
-        wx.hideLoading();
-        this._buying = false;
 
         if (res && res.result === true && res.urls && res.urls.weapp_url) {
           const weappUrl = res.urls.weapp_url;
@@ -382,10 +474,11 @@ Component({
           wx.showToast({ title: '获取推广链接失败', icon: 'none' });
         }
       } catch (err) {
-        wx.hideLoading();
-        this._buying = false;
         console.error('[Goods] 获取推广链接异常:', err);
         wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+        this._buying = false;
       }
     },
   },

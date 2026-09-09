@@ -29,6 +29,8 @@ Component({
     longitude: '',
     latitude: '',
     showLoginModal: false,
+    // 唯品会第三方授权提示弹窗（未授权时提示用户去授权，确认后才跳转）
+    showVipAuthModal: false,
     // 今日最优惠活动：由 /api/banner/indexBannerList 下发；不足两条或请求失败时整区隐藏（保持空数组）
     activityBanners: [],
     linkInput: '',
@@ -193,8 +195,8 @@ Component({
     /**
      * 唯品会坑位：点击后先校验登录，再校验唯品会第三方授权：
      * 1. 未登录 → ensureLogin 弹手机号登录
-     * 2. 已登录但未在唯品会授权 → /api/thirdAuth/genAuthUrl 取授权链接（小程序路径）
-     *    跳转唯品会小程序完成授权，返回后再点坑位
+     * 2. 已登录但未在唯品会授权 → 弹「去授权」提示窗，确认后再调
+     *    /api/thirdAuth/genAuthUrl 跳唯品会小程序完成授权（不直接跳转）
      * 3. 已授权 → extra_url → /api/tranUrl 转链（带 uid），weapp_url 跳唯品会小程序
      */
     async openVipActivity(item) {
@@ -225,23 +227,9 @@ Component({
         const isVipAuthed = authFlag === true || authFlag === 1 || authFlag === '1' || authFlag === 'true';
 
         if (!isVipAuthed) {
-          // 未授权：获取唯品会授权链接（小程序路径），跳过去完成授权
-          const urlRes = await genAuthUrl(uid, VIP_AUTH_PLATFORM);
-          const authPath = (urlRes && (urlRes.weapp_url || (urlRes.data && urlRes.data.weapp_url))) || '';
-          if (!authPath) {
-            console.error('[Index] 获取唯品会授权链接失败:', urlRes);
-            wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
-            return;
-          }
-          console.log('[Index] 跳转唯品会授权页, 路径:', authPath);
-          wx.navigateToMiniProgram({
-            appId: VIP_APP_ID,
-            path: authPath,
-            fail: (err) => {
-              console.error('[Index] 跳转唯品会授权页失败:', err);
-              wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
-            },
-          });
+          // 未授权：不直接跳转，先弹窗提示用户去授权，确认后才跳唯品会小程序授权页
+          console.log('[Index] 唯品会未授权，弹出授权提示');
+          this.setData({ showVipAuthModal: true });
           return;
         }
 
@@ -349,6 +337,59 @@ Component({
     closeLoginModal() {
       this._pendingAction = null;
       this.setData({ showLoginModal: false });
+    },
+
+    /**
+     * 关闭唯品会授权提示弹窗
+     */
+    closeVipAuthModal() {
+      this.setData({ showVipAuthModal: false });
+    },
+
+    /**
+     * 唯品会授权提示弹窗「去授权」：
+     * 先 /api/thirdAuth/genAuthUrl 获取小程序授权路径，再跳转唯品会小程序完成授权
+     */
+    async onConfirmVipAuth() {
+      if (this._authJumping) return;
+      this._authJumping = true;
+      this.setData({ showVipAuthModal: false });
+
+      const uid = getApp().globalData.userId || '';
+      if (!uid) {
+        this._authJumping = false;
+        wx.showToast({ title: '请先完成登录授权', icon: 'none' });
+        return;
+      }
+
+      wx.showLoading({ title: '获取授权链接...', mask: true });
+      try {
+        const urlRes = await genAuthUrl(uid, VIP_AUTH_PLATFORM);
+        // 真实结构示例: { result: true, authUrl: { h5_url, weapp_url, deeplink_url } }
+        // 用 weapp_url 跳唯品会小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
+        const urlBody = urlRes && (urlRes.authUrl || urlRes.data || urlRes);
+        const authPath = (urlBody && (urlBody.weapp_url || (urlBody.authUrl && urlBody.authUrl.weapp_url))) || '';
+        if (!authPath) {
+          console.error('[Index] 获取唯品会授权链接失败:', urlRes);
+          wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
+          return;
+        }
+        console.log('[Index] 跳转唯品会授权页, 路径:', authPath);
+        wx.navigateToMiniProgram({
+          appId: VIP_APP_ID,
+          path: authPath,
+          fail: (err) => {
+            console.error('[Index] 跳转唯品会授权页失败:', err);
+            wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
+          },
+        });
+      } catch (err) {
+        console.error('[Index] 获取唯品会授权链接异常:', err);
+        wx.showToast({ title: '获取授权链接失败，请重试', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+        this._authJumping = false;
+      }
     },
 
     /**

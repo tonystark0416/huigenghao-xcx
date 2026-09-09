@@ -199,4 +199,13 @@
   </view>
 </view>
 
-<!-- 第三方授权提示弹窗已移除：电商平台入口下线后不再使用 -->
+<!-- 唯品会授权提示弹窗：点击唯品会坑位未授权时弹出，确认后才跳转授权页 -->
+<view class="login-modal" wx:if="{{showVipAuthModal}}" catchtouchmove="noop">
+  <view class="login-mask" bindtap="closeVipAuthModal"></view>
+  <view class="login-dialog">
+    <view class="login-title">前往唯品会授权</view>
+    <view class="login-desc">当前尚未授权唯品会账号，需先前往唯品会小程序完成授权，才能正常获取专属推广链接。</view>
+    <button class="login-phone-btn" bindtap="onConfirmVipAuth">去授权</button>
+    <view class="login-skip" bindtap="closeVipAuthModal">暂不授权</view>
+  </view>
+</view>
