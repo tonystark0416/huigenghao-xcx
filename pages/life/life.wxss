@@ -26,17 +26,17 @@
   display: flex;
   align-items: center;
   background: #ffffff;
-  border: 3rpx solid #81d8cf;
+  border: 3rpx solid #ffd9c2;
   border-radius: 40rpx;
   padding: 0 24rpx;
   height: 72rpx;
-  box-shadow: 0 4rpx 16rpx rgba(129, 216, 207, 0.4);
+  box-shadow: 0 4rpx 16rpx rgba(255, 77, 0, 0.2);
 }
 
 .search-icon {
   width: 28rpx;
   height: 28rpx;
-  border: 3rpx solid #0ea294;
+  border: 3rpx solid #ff5000;
   border-radius: 50%;
   position: relative;
   margin-right: 16rpx;
@@ -48,7 +48,7 @@
   position: absolute;
   width: 3rpx;
   height: 14rpx;
-  background: #0ea294;
+  background: #ff5000;
   border-radius: 2rpx;
   transform: rotate(-45deg);
   right: -8rpx;
@@ -72,7 +72,7 @@
   height: 40rpx;
   line-height: 40rpx;
   text-align: center;
-  background: #0ea294;
+  background: #ff5000;
   color: #ffffff;
   border-radius: 50%;
   font-size: 24rpx;
@@ -124,7 +124,7 @@
 }
 
 .sort-item-active {
-  color: #0ea294;
+  color: #ff5000;
   font-weight: bold;
   background: #e5f7f3;
 }
@@ -218,8 +218,8 @@
 .goods-brand {
   flex-shrink: 0;
   font-size: 22rpx;
-  color: #0ea294;
-  border: 2rpx solid #0ea294;
+  color: #ff5000;
+  border: 2rpx solid #ff5000;
   border-radius: 6rpx;
   padding: 2rpx 8rpx;
   margin-right: 12rpx;
@@ -268,7 +268,7 @@
 .goods-price {
   font-size: 36rpx;
   font-weight: bold;
-  color: #0ea294;
+  color: #ff5000;
 }
 
 .goods-original {
@@ -281,8 +281,8 @@
 .goods-rebate {
   flex-shrink: 0;
   font-size: 22rpx;
-  color: #0ea294;
-  background: rgba(129, 216, 207, 0.18);
+  color: #ff5000;
+  background: rgba(255, 77, 0, 0.1);
   border-radius: 6rpx;
   padding: 4rpx 10rpx;
   margin-left: auto;

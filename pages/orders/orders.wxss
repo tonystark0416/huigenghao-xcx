@@ -105,7 +105,7 @@
 
 .order-status {
   font-size: 24rpx;
-  color: #0ea294;
+  color: #ff5000;
 }
 
 .order-card-body {
@@ -142,7 +142,7 @@
 .order-platform {
   margin-top: 12rpx;
   font-size: 22rpx;
-  color: #0ea294;
+  color: #ff5000;
 }
 
 .order-time {
@@ -175,7 +175,7 @@
 .order-commission-value {
   font-size: 28rpx;
   font-weight: bold;
-  color: #0ea294;
+  color: #ff5000;
 }
 
 /* 加载更多 */

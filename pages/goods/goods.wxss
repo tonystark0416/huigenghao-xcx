@@ -97,13 +97,13 @@ page {
 
 .price-symbol {
   font-size: 28rpx;
-  color: #0ea294;
+  color: #ff5000;
   font-weight: 600;
 }
 
 .price-value {
   font-size: 48rpx;
-  color: #0ea294;
+  color: #ff5000;
   font-weight: 700;
   line-height: 1;
   margin-right: 12rpx;
@@ -124,7 +124,7 @@ page {
 .price-desc-inner {
   display: inline-flex;
   align-items: center;
-  background: rgba(129, 216, 207, 0.16);
+  background: rgba(255, 77, 0, 0.1);
   border-radius: 10rpx;
   padding: 8rpx 20rpx;
   line-height: 1;
@@ -136,13 +136,13 @@ page {
 }
 
 .price-desc-part-hl {
-  color: #0ea294;
+  color: #ff5000;
   font-weight: 600;
 }
 
 .price-desc-minus {
   font-size: 22rpx;
-  color: #0ea294;
+  color: #ff5000;
   margin: 0 12rpx;
 }
 
@@ -160,14 +160,14 @@ page {
 
 .rebate-value {
   font-size: 32rpx;
-  color: #0ea294;
+  color: #ff5000;
   font-weight: 700;
   margin-right: 4rpx;
 }
 
 .rebate-rate {
   font-size: 22rpx;
-  color: #0ea294;
+  color: #ff5000;
 }
 
 /* 商品信息 */
@@ -201,8 +201,8 @@ page {
 
 .tag-item {
   font-size: 22rpx;
-  color: #0ea294;
-  background: rgba(129, 216, 207, 0.18);
+  color: #ff5000;
+  background: rgba(255, 77, 0, 0.1);
   border-radius: 6rpx;
   /* 标签固定高度，文字在胶囊内精确垂直居中，避免偏上/偏下 */
   display: inline-flex;
@@ -280,7 +280,7 @@ page {
 
 .bottom-rebate-value {
   font-size: 32rpx;
-  color: #0ea294;
+  color: #ff5000;
   font-weight: 700;
 }
 

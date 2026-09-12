@@ -35,13 +35,13 @@ page {
   background: #ffffff;
   border-radius: 40rpx;
   padding: 0 24rpx;
-  border: 3rpx solid #81d8cf;
-  box-shadow: 0 4rpx 14rpx rgba(129, 216, 207, 0.35);
+  border: 3rpx solid #ffd9c2;
+  box-shadow: 0 4rpx 14rpx rgba(255, 77, 0, 0.18);
   transition: border-color 0.25s, box-shadow 0.25s;
 }
 
 .search-input-focus {
-  border-color: #0ea294;
+  border-color: #ff5000;
   box-shadow: 0 4rpx 16rpx rgba(14, 162, 148, 0.4);
 }
 
@@ -305,13 +305,13 @@ page {
 
 .price-symbol {
   font-size: 22rpx;
-  color: #0ea294;
+  color: #ff5000;
   font-weight: 600;
 }
 
 .price-value {
   font-size: 34rpx;
-  color: #0ea294;
+  color: #ff5000;
   font-weight: 700;
   line-height: 1;
 }
@@ -319,7 +319,7 @@ page {
 .coupon-tag {
   font-size: 18rpx;
   color: #fff;
-  background: #0ea294;
+  background: #ff5000;
   border-radius: 4rpx;
   padding: 2rpx 8rpx;
   margin-left: 8rpx;
@@ -345,7 +345,7 @@ page {
   width: 32rpx;
   height: 32rpx;
   border: 3rpx solid #e0e0e0;
-  border-top-color: #0ea294;
+  border-top-color: #ff5000;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
