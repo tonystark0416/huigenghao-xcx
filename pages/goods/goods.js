@@ -6,6 +6,7 @@ const {
   checkAuth,
   genAuthUrl,
 } = require('../../utils/api');
+const { BASE_URL } = require('../../utils/config');
 
 // 唯品会小程序 appId
 const VIP_APP_ID = 'wxe9714e742209d35f';
@@ -371,7 +372,7 @@ Component({
     getPhoneNumber(code) {
       return new Promise((resolve, reject) => {
         wx.request({
-          url: `https://hgh.pangpai-car.com/api/weixin/getPhone?code=${code}`,
+          url: `${BASE_URL}/api/weixin/getPhone?code=${code}`,
           method: 'GET',
           timeout: 5000,
           success: (res) => {
@@ -404,7 +405,7 @@ Component({
     register(openid, phone) {
       return new Promise((resolve, reject) => {
         wx.request({
-          url: 'https://hgh.pangpai-car.com/api/user/register',
+          url: `${BASE_URL}/api/user/register`,
           method: 'POST',
           data: { openid, phone },
           header: { 'Content-Type': 'application/json' },

@@ -3,7 +3,8 @@
  * 优先调用真实接口，失败/无数据时 fallback 到 mock
  */
 
-const BASE_URL = 'https://hgh.pangpai-car.com';
+// 接口 Host 统一由 utils/config.js 按环境下发（开发→本地，线上→正式域名）
+const { BASE_URL } = require('./config');
 
 // 调试开关：true=仅mock false=优先真实接口
 const MOCK_ONLY = false;
@@ -421,29 +422,6 @@ async function loginByOpenid(openid) {
   }
 }
 
-// ==================== 首页商品列表 ====================
-
-/**
- * 获取首页商品列表（唯品会）
- * GET /api/vip/goodsList
- * @param {Object} params
- * @param {string} params.jxCode   - 精选 code
- * @param {number} params.offset   - 偏移量
- * @param {number} params.pageSize - 每页数量
- */
-async function getGoodsList({ jxCode = '4vojhsp2', offset = 0, pageSize = 10 } = {}) {
-  try {
-    const query = `jxCode=${jxCode}&offset=${offset}&pageSize=${pageSize}`;
-    console.log('[API] getGoodsList 请求URL:', `${BASE_URL}/api/vip/goodsList?${query}`);
-    const result = await request(`${BASE_URL}/api/vip/goodsList?${query}`);
-    console.log('[API] getGoodsList 响应:', result);
-    return result;
-  } catch (err) {
-    console.error('[API] getGoodsList 失败:', err.message);
-    return null;
-  }
-}
-
 // ==================== 第三方授权 ====================
 
 /**
@@ -852,8 +830,8 @@ async function searchMeituanGoods({ searchText = '', longitude = '', latitude = 
 /**
  * 首页聚合列表服务
  * 「唯品好货」与「美团热销」共用该接口，通过 tab 区分
+ * 接口 Host 统一走 utils/config.js 下发的 BASE_URL
  */
-const INDEX_LIST_BASE_URL = 'https://hgh.pangpai-car.com';
 
 /**
  * 组装 GET query 串（跳过 undefined/null/''）
@@ -867,18 +845,19 @@ function buildQuery(params) {
 
 /**
  * 首页 - 唯品好货（tab=1），offset 分页
- * GET {base}/api/indexList?tab=1&jxCode=4vojhsp2&offset=0&pageSize=10
+ * GET {base}/api/indexList?tab=1&uid=xxx&offset=0&pageSize=10
  * 返回 { returnCode:'0', result:{ goodsInfoList, nextPageOffset, lastPage } }
+ * 说明：jxCode 等平台筛选参数已下沉到后端按 tab 判断，前端不再下发
  *
  * @param {Object} params
- * @param {string} [params.jxCode='4vojhsp2'] - 精选 code
+ * @param {string} [params.uid=USER_CONFIG.uid] - 当前用户 uid（未登录时为空，不下发该参数）
  * @param {number} [params.offset=0] - 偏移量
  * @param {number} [params.pageSize=10] - 每页条数
  * @returns {Promise<{list: Array, hasMore: boolean, nextOffset: number}>}
  */
-async function fetchVipIndexGoods({ jxCode = '4vojhsp2', offset = 0, pageSize = 10 } = {}) {
+async function fetchVipIndexGoods({ uid = USER_CONFIG.uid, offset = 0, pageSize = 10 } = {}) {
   try {
-    const url = `${INDEX_LIST_BASE_URL}/api/indexList?${buildQuery({ tab: 1, jxCode, offset, pageSize })}`;
+    const url = `${BASE_URL}/api/indexList?${buildQuery({ tab: 1, uid, offset, pageSize })}`;
     console.log('[API] fetchVipIndexGoods 请求URL:', url);
     const result = await request(url);
 
@@ -901,19 +880,18 @@ async function fetchVipIndexGoods({ jxCode = '4vojhsp2', offset = 0, pageSize = 
 
 /**
  * 首页 - 美团热销（tab=2），按定位一次返回（暂不分页）
- * GET {base}/api/indexList?tab=2&longitude=..&latitude=..&platform=2&listTopiId=2
+ * GET {base}/api/indexList?tab=2&longitude=..&latitude=..
  * 返回 { code:0, data:[{ brandInfo, commissionInfo, couponPackDetail, deliverablePoiInfo, ... }] }
+ * 说明：platform / listTopiId 等平台筛选参数已下沉到后端按 tab 判断，前端不再下发
  *
  * @param {Object} params
  * @param {string} [params.longitude=''] - 经度
  * @param {string} [params.latitude=''] - 纬度
- * @param {number} [params.platform=2] - 平台标识
- * @param {number} [params.listTopiId=2] - 主题 id
  * @returns {Promise<{list: Array}>} list 已按 mapMeituanGoods 映射
  */
-async function fetchMeituanIndexGoods({ longitude = '', latitude = '', platform = 2, listTopiId = 2 } = {}) {
+async function fetchMeituanIndexGoods({ longitude = '', latitude = '' } = {}) {
   try {
-    const url = `${INDEX_LIST_BASE_URL}/api/indexList?${buildQuery({ tab: 2, longitude, latitude, platform, listTopiId })}`;
+    const url = `${BASE_URL}/api/indexList?${buildQuery({ tab: 2, longitude, latitude })}`;
     console.log('[API] fetchMeituanIndexGoods 请求URL:', url);
     const result = await request(url);
 
@@ -1003,7 +981,6 @@ async function getOrderList(uid, page = 1, platform = 'vip') {
 module.exports = {
   searchProducts,
   getProductDetail,
-  getGoodsList,
   fetchVipIndexGoods,
   fetchMeituanIndexGoods,
   loginByOpenid,

@@ -196,26 +196,6 @@ page {
   border: none;
 }
 
-.result-link-copy-btn {
-  width: 100%;
-  height: 64rpx;
-  line-height: 64rpx;
-  text-align: center;
-  font-size: 26rpx;
-  font-weight: 500;
-  color: #111;
-  background: #fff;
-  border: 3rpx solid #111;
-  box-sizing: border-box;
-  border-radius: 12rpx;
-  padding: 0;
-  margin-top: 16rpx;
-}
-
-.result-link-copy-btn::after {
-  border: none;
-}
-
 /* 今日最优惠活动（两坑位横排：左图 + 右侧标题/子标题） */
 .activity-section {
   margin: 0 24rpx 16rpx;

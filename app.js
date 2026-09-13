@@ -1,8 +1,12 @@
 // app.js
 const api = require('./utils/api');
+const { BASE_URL, setupRequestGuard } = require('./utils/config');
 
 App({
   async onLaunch() {
+    // 开发环境启用请求守卫（打印每条请求真实 URL，非本地请求告警）
+    setupRequestGuard();
+
     // 展示本地存储能力
     const logs = wx.getStorageSync('logs') || []
     logs.unshift(Date.now())
@@ -92,7 +96,7 @@ App({
   getOpenidByCode(code) {
     return new Promise((resolve, reject) => {
       wx.request({
-        url: `https://hgh.pangpai-car.com/api/weixin/openid?code=${code}`,
+        url: `${BASE_URL}/api/weixin/openid?code=${code}`,
         method: 'GET',
         timeout: 5000,
         success: (res) => {

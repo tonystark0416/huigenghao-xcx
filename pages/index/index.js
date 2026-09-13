@@ -10,6 +10,7 @@ const {
   genAuthUrl,
   setUserConfig,
 } = require('../../utils/api');
+const { BASE_URL } = require('../../utils/config');
 
 // 美团外卖小程序 appId（跳转目标，同吃喝玩乐页）
 const MEITUAN_APP_ID = 'wxde8ac0a21135c07d';
@@ -447,6 +448,9 @@ Component({
           wx.showToast({ title: '登录成功', icon: 'success' });
           console.log('[Login] 注册登录成功，userId:', app.globalData.userId);
 
+          // 登录后 uid 才有值，携带 uid 重新拉取「唯品好货」首页数据（覆盖首屏未登录时的结果）
+          this.loadVipGoods();
+
           // 执行登录前的待办动作（如搜索、转链、平台跳转、商品点击）
           if (this._pendingAction) {
             const action = this._pendingAction;
@@ -471,7 +475,7 @@ Component({
     getPhoneNumber(code) {
       return new Promise((resolve, reject) => {
         wx.request({
-          url: `https://hgh.pangpai-car.com/api/weixin/getPhone?code=${code}`,
+          url: `${BASE_URL}/api/weixin/getPhone?code=${code}`,
           method: 'GET',
           timeout: 5000,
           success: (res) => {
@@ -504,7 +508,7 @@ Component({
     register(openid, phone) {
       return new Promise((resolve, reject) => {
         wx.request({
-          url: 'https://hgh.pangpai-car.com/api/user/register',
+          url: `${BASE_URL}/api/user/register`,
           method: 'POST',
           data: { openid, phone },
           header: { 'Content-Type': 'application/json' },
@@ -600,31 +604,7 @@ Component({
     },
 
     /**
-     * 复制指定的链接字段
-     */
-    onCopyField(e) {
-      const { field } = e.currentTarget.dataset;
-      const { linkResult } = this.data;
-      if (!linkResult) return;
-
-      const url = linkResult[field];
-      if (!url) {
-        wx.showToast({ title: '暂无链接可复制', icon: 'none' });
-        return;
-      }
-      wx.setClipboardData({
-        data: url,
-        success: () => {
-          wx.showToast({ title: '链接已复制，快去分享吧', icon: 'success' });
-        },
-        fail: () => {
-          wx.showToast({ title: '复制失败', icon: 'none' });
-        },
-      });
-    },
-
-    /**
-     * 复制转换后的推广链接（兼容旧逻辑，默认复制 h5_url）
+     * 复制转换后的推广链接（默认复制 h5_url）
      */
     onCopyLink() {
       const { linkResult } = this.data;
@@ -688,7 +668,6 @@ Component({
 
       try {
         const res = await fetchVipIndexGoods({
-          jxCode: '4vojhsp2',
           offset: 0,
           pageSize: this.data.vipPageSize,
         });
@@ -718,7 +697,6 @@ Component({
 
       try {
         const res = await fetchVipIndexGoods({
-          jxCode: '4vojhsp2',
           offset: vipOffset,
           pageSize: vipPageSize,
         });

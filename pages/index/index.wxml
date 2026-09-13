@@ -43,23 +43,6 @@
           <text class="result-label">H5 推广链接</text>
           <text class="result-url-text result-url-highlight">{{linkResult.h5_url}}</text>
         </view>
-        <button class="result-link-copy-btn" data-field="h5_url" bindtap="onCopyField">复制 H5 链接</button>
-        <view class="result-divider" wx:if="{{linkResult.weapp_url || linkResult.deeplink_url}}"></view>
-      </block>
-      <block wx:if="{{linkResult.weapp_url}}">
-        <view class="result-section">
-          <text class="result-label">小程序路径</text>
-          <text class="result-url-text">{{linkResult.weapp_url}}</text>
-        </view>
-        <button class="result-link-copy-btn result-link-copy-btn-sub" data-field="weapp_url" bindtap="onCopyField">复制小程序路径</button>
-      </block>
-      <block wx:if="{{linkResult.deeplink_url}}">
-        <view class="result-divider" wx:if="{{linkResult.weapp_url}}"></view>
-        <view class="result-section">
-          <text class="result-label">App 唤起链接</text>
-          <text class="result-url-text">{{linkResult.deeplink_url}}</text>
-        </view>
-        <button class="result-link-copy-btn result-link-copy-btn-sub" data-field="deeplink_url" bindtap="onCopyField">复制 App 链接</button>
       </block>
     </view>
     <button class="result-copy-btn" bindtap="onCopyLink">一键复制推广链接</button>

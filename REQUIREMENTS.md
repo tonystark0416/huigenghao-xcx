@@ -1,6 +1,6 @@
 # 值物APP (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.12.0  
+> 多平台 CPS 返利小程序 | 版本 v0.12.6  
 > 最后更新：2026-09-13
 
 ---
@@ -96,8 +96,8 @@ huigenghao/
 - **顶部布局**：移除独立标题导航栏，页面内容从屏幕最顶开始；搜索框置顶固定（`position: sticky`），头部整块橙色渐变 `#ff4d00 → #ff9402` 背景（含状态栏区域），顶部间距动态读取胶囊按钮上边缘使其与搜索框同高、水平对齐，右侧自动避让胶囊宽度，页面滑动时头部固定不随内容滚动
 - 搜索入口：点击置顶搜索框（占位文案「搜索全网好物」）跳转商品搜索页
 - 转链按钮文案「查找专属优惠」（转换中显示「正在转换...」）；下方「粘贴链接」「平台入口」区块收窄为主色系圆角留白卡片
-- **精选好物（唯品好货 / 美团热销双 tab）**：精选好物区改为两个 tab——左侧「唯品好货」调用 `GET http://localhost:3000/api/indexList?tab=1&jxCode=4vojhsp2&offset=0&pageSize=10`，携带 `offset/nextPageOffset` 触底翻页加载唯品会推荐，双列瀑布流展示（券后价 + 删除线原价），点击卡片跳商品详情页；右侧「美团热销」调用 `GET http://localhost:3000/api/indexList?tab=2&longitude=..&latitude=..&platform=2&listTopiId=2`，携带首页模糊定位经纬度加载附近美团热销团购（接口一次返回暂不分页），卡片展示主图/标题/门店·品牌/券后价/原价，点击经 `getMeituanGoodsReferralLink` 转链后跳美团小程序；两 tab 数据源为同一聚合接口 `/api/indexList`（本地联调地址，上线前替换正式域名），首次进入页面默认加载唯品好货，切换美团热销时首次才发起请求
-- **链接转换**：支持粘贴拼多多和唯品会商品链接，调 `GET /api/tranUrl` 获取推广链接（h5_url/weapp_url/deeplink_url），每个链接独立可复制；输入框占位文案「粘贴淘宝/唯品会/京东/拼多多/抖音 链接查找优惠」，输入区为压缩高度圆角灰底卡片
+- **精选好物（唯品好货 / 美团热销双 tab）**：精选好物区改为两个 tab——左侧「唯品好货」调用 `GET {BASE_URL}/api/indexList?tab=1&uid=xxx&offset=0&pageSize=10`，携带 `offset/nextPageOffset` 触底翻页加载唯品会推荐，双列瀑布流展示（券后价 + 删除线原价），点击卡片跳商品详情页；右侧「美团热销」调用 `GET {BASE_URL}/api/indexList?tab=2&longitude=..&latitude=..`，携带首页模糊定位经纬度加载附近美团热销团购（接口一次返回暂不分页），卡片展示主图/标题/门店·品牌/券后价/原价，点击经 `getMeituanGoodsReferralLink` 转链后跳美团小程序；两 tab 数据源为同一聚合接口 `/api/indexList`（Host 统一取自 `utils/config.js` 的 `BASE_URL`，不再硬编码联调地址）；平台筛选参数（`jxCode` / `platform` / `listTopiId`）已下沉到后端按 `tab` 判断，前端不再下发；唯品好货（tab=1）额外携带当前用户 `uid`（取自 `USER_CONFIG.uid`，未登录为空时不下发该参数）；首次进入页面默认加载唯品好货，切换美团热销时首次才发起请求；手机号登录成功后会携带新 `uid` 重新拉取一次唯品好货列表
+- **链接转换**：支持粘贴拼多多和唯品会商品链接，调 `GET /api/tranUrl` 获取推广链接；结果卡片**当前只展示 `h5_url`（H5 推广链接）**，小程序路径 / App 唤起链接暂不展示（`linkResult` 仍保留字段备用）；输入框占位文案「粘贴淘宝/唯品会/京东/拼多多/抖音 链接查找优惠」，输入区为压缩高度圆角灰底卡片
 - **今日最优惠活动**：原「电商购物」五个 icon 入口下线，改为首页一行三个 banner 坑位（外层不再展示区块大标题），每张卡片结构为「左侧彩色圆 icon + 主标题 + 子标题 + 商品大图」，三段式纵向布局；数据由接口下发（接口正在开发中，期望响应 `[{ id, iconBg, icon, title, subtitle, image, link?, targetType? }]`，最多取前 3 个），对接完成后在 `attached` 启用 `loadActivityBanners()`；接口未就绪前展示三条内置占位数据，缺图时显示「商品图占位」色块
   - 唯品会 appId: `wxe9714e742209d35f`
   - 拼多多 appId: `wxa918198f16869201`
@@ -153,7 +153,7 @@ huigenghao/
 - 商品列表分页：上拉触底加载下一页，翻页回传上一页返回的 `searchId`，`hasNext=false` 时停止加载
 - **登录拦截**：进入页面即检查登录态，`needPhoneLogin && !isLogin` 时弹出手机号快捷登录弹窗（标题「欢迎使用值物APP」，描述「登录后即可获取推广链接，请先登录」，支持「暂不登录」跳过）；登录成功同步真实 uid 并自动重试此前被拦截的操作
 
-**接口**（统一走线上域名 `https://hgh.pangpai-car.com`）：
+**接口**（Base URL 统一取 `utils/config.js` 的 `BASE_URL`：开发环境走本地 `http://localhost:3000`，线上走 `https://hgh.pangpai-car.com`）：
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -281,7 +281,7 @@ huigenghao/
 - **下拉刷新**：支持页面下拉刷新（`enablePullDownRefresh`），刷新期间保持当前列表可见不闪加载页，静默重新拉取当前平台第 1 页并整页替换；已有列表加载/上拉加载进行中时忽略下拉
 - 登录成功后自动重新加载订单列表
 
-**接口**（统一走线上域名 `https://hgh.pangpai-car.com`）：
+**接口**（Base URL 统一取 `utils/config.js` 的 `BASE_URL`：开发环境走本地 `http://localhost:3000`，线上走 `https://hgh.pangpai-car.com`）：
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
@@ -301,7 +301,12 @@ huigenghao/
 
 ### 4.1 通用约定
 
-- 基础路径：`https://hgh.pangpai-car.com`
+- **基础路径（统一由 `utils/config.js` 按环境下发）**：
+  - 开发环境（开发者工具 / 真机调试，`envVersion=develop`）：`http://localhost:3000`
+  - 线上环境（体验版 `trial` / 正式版 `release`）：`https://hgh.pangpai-car.com`
+  - 运行时自动识别 `wx.getAccountInfoSync().miniProgram.envVersion` 选择 Host；如需临时强制，可在 `utils/config.js` 把 `FORCE_ENV` 改为 `'develop' | 'trial' | 'release'`（留空 `''` 即自动）
+  - 全项目所有请求（`app.js` openid、各页面 `getPhone`/`register`、`utils/api.js` 全部接口）统一 `require` 该模块取 `BASE_URL` 拼接，**不得再写死域名**
+- **开发环境请求守卫**：`utils/config.js` 导出 `setupRequestGuard()`，由 `app.js` onLaunch 调用，仅在 `develop` 环境给 `wx.request` 打代理——每条请求打印真实 URL（`[Guard] GET http://localhost:3000/...`），若 host 不是本地 `BASE_URL` 则红字告警并输出调用栈，用于快速定位漏网请求；线上环境不生效，图片资源（`<image>`）不经过该守卫（后端下发的图片绝对地址仍走线上，属预期）
 - 请求方式：GET（Query String 传参）为主，少数接口用 POST（JSON body）
 - 认证方式：通过 URL Query 参数传递 `uid` / `token` / `openid`
 - 兜底处理：`wx.request` 返回的 `res.data` 若为字符串，自动尝试 `JSON.parse` 解析（防止后端 `Content-Type` 不规范导致解析失败）
@@ -520,8 +525,8 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 **UI 交互**：
 - 首页「粘贴购物链接」输入框 → 点击「查找优惠」→ 按钮显示「正在转换...」loading 态
-- 转换成功后展示结果卡片：原始链接 / H5推广链接 / 小程序路径 / App唤起链接，每个链接单独可复制
-- 底部一键复制按钮默认复制 H5 推广链接
+- 转换成功后展示结果卡片：原始链接 / H5 推广链接（**当前仅展示 `h5_url`**；小程序路径与 App 唤起链接暂不展示，数据仍保留在 `linkResult` 中备用）
+- 卡片底部仅保留「一键复制推广链接」按钮（复制 `h5_url`），不再提供单独的字段复制按钮
 - 点击 ✕ 可清除结果回到输入状态
 
 ---
@@ -696,6 +701,12 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-09-13 | v0.12.6 | **首页唯品好货登录后刷新 + 清理废弃接口**：手机号登录成功后调用 `loadVipGoods()` 重新拉取唯品好货（携带新 `uid`，覆盖首屏未登录时的结果）；移除已废弃的 `/api/vip/goodsList` 接口封装 `getGoodsList`（含导出，全项目无调用方） | [3.1](#31-首页-pagesindex-)、[4.1](#41-通用约定) |
+| 2026-09-13 | v0.12.5 | **`/api/indexList` 参数调整**：平台筛选参数下沉到后端——tab=1（唯品好货）移除 `jxCode`、新增 `uid`（取 `USER_CONFIG.uid`，未登录不下发），tab=2（美团热销）移除 `platform` / `listTopiId`，前端仅保留 `tab` 与分页/定位参数；首页两处 `fetchVipIndexGoods` 调用同步去掉 `jxCode` | [3.1](#31-首页-pagesindex-)、[4.1](#41-通用约定) |
+| 2026-09-13 | v0.12.4 | **首页转链结果卡片按钮精简**：移除单独的「复制 H5 链接」按钮，仅保留底部「一键复制推广链接」（复制 `h5_url`）；清理随之失效的 `onCopyField` 方法（含 `data-field` 通用复制逻辑）与 `.result-link-copy-btn` 样式 | [3.1](#31-首页-pagesindex-)、[4.6](#46-链接转换接口-) |
+| 2026-09-13 | v0.12.3 | **首页转链结果精简**：链接转换结果卡片只展示 `h5_url`（H5 推广链接），移除「小程序路径」「App 唤起链接」两个区块及相应分隔线；`utils/api.js` 返回结构与 `linkResult` 数据字段（weapp_url/weapp_short_link/deeplink_url）保留不变，后续需要展示时放开 wxml 即可 | [3.1](#31-首页-pagesindex-)、[4.6](#46-链接转换接口-) |
+| 2026-09-13 | v0.12.2 | **开发环境请求守卫**：`utils/config.js` 新增 `setupRequestGuard()`（`app.js` onLaunch 调用），仅 `develop` 环境给 `wx.request` 打代理——打印每条请求真实 URL，非本地 host 请求红字告警并输出调用栈，用于定位「接口仍走线上」类问题；`FORCE_ENV` 当前置为 `'develop'`，开发阶段全量走本地 `http://localhost:3000`；明确后端下发的图片绝对地址（banner/商品图）不在治理范围，继续走线上 | [4.1](#41-通用约定) |
+| 2026-09-13 | v0.12.1 | **接口 Host 统一治理**：新增 `utils/config.js` 作为唯一接口地址来源，按 `wx.getAccountInfoSync().miniProgram.envVersion` 自动切换环境——开发版（开发者工具/真机调试）走本地 `http://localhost:3000`，体验版/正式版走线上 `https://hgh.pangpai-car.com`，支持 `FORCE_ENV` 手动强制指定；改造 `utils/api.js`（BASE_URL 与 indexList 聚合接口）、`app.js`（openid）、首页/吃喝玩乐/商品详情/我的订单四页的 `getPhone` / `register` 共 11 处硬编码域名为统一 `BASE_URL` 拼接 | [4.1](#41-通用约定) |
 | 2026-09-13 | v0.12.0 | 全站换肤为淘宝橙色系，主色 #ff5000，头部渐变 #ff4d00→#ff9402 | [6.1](#61-色彩系统) |
 | 2026-09-10 | v0.11.0 | **产品更名**：惠更好 → 值物APP。全站登录弹窗与需求文档品牌文案统一改为「值物APP」，产品定位不变（多平台 CPS 返利小程序）；代码工程目录与配置标识保留 `huigenghao` | [1.1](#11-产品定位) |
 | 2026-09-10 | v0.10.9 | **唯品会第三方授权改为弹窗确认再跳转**：首页唯品会坑位与商品详情「前往购买」未授权（checkAuth=false）时不再直接跳转，先弹「前往唯品会授权」提示窗，确认后调 `/api/thirdAuth/genAuthUrl` 取 `authUrl.weapp_url` 跳唯品会小程序完成授权；授权链接解析兼容顶层 / authUrl / data 结构；登录判定收紧为 `isLogin && userId`（首页/商品详情），uid 取值移除 openid 兜底 | [3.1](#31-首页-pagesindex-)、[3.3](#33-商品详情页-pagesgoods-)、[4.4](#44-第三方平台授权接口-) |
