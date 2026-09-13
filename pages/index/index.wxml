@@ -13,7 +13,7 @@
     <view class="link-input-wrap">
       <textarea
         class="link-textarea"
-        placeholder="粘贴淘宝/唯品会/京东/拼多多/抖音 链接查找优惠"
+        placeholder="支持粘贴唯品会/拼多多 商品链接查找优惠"
         placeholder-class="link-placeholder"
         value="{{linkInput}}"
         bindinput="onLinkInput"
