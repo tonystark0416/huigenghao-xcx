@@ -277,7 +277,7 @@ page {
   padding: 28rpx 24rpx 60rpx 24rpx;
 }
 
-/* 商品双 tab 切换栏 */
+/* 商品三 tab 切换栏 */
 .goods-tabs {
   display: flex;
   background: #fff;

@@ -426,17 +426,15 @@ async function loginByOpenid(openid) {
 
 /**
  * 校验第三方平台是否已授权
- * GET /api/thirdAuth/checkAuth?uid=xxx&platform=xxx[&pid=xxx]
+ * GET /api/thirdAuth/checkAuth?uid=xxx&platform=xxx（pid 不下发，由后端处理）
  * @param {string} uid - 用户标识
- * @param {string} platform - 平台标识（如 vip）
- * @param {string} [pid] - 推广位ID，可不传
+ * @param {string} platform - 平台标识（vip / pdd）
  */
-async function checkAuth(uid, platform, pid) {
+async function checkAuth(uid, platform) {
   try {
     const query = [
       `uid=${uid || ''}`,
       platform ? `platform=${platform}` : '',
-      pid ? `pid=${pid}` : '',
     ].filter(Boolean).join('&');
     const fullRes = await new Promise((resolve, reject) => {
       wx.request({
@@ -457,17 +455,15 @@ async function checkAuth(uid, platform, pid) {
 
 /**
  * 生成第三方平台授权链接
- * GET /api/thirdAuth/genAuthUrl?uid=xxx&platform=xxx[&pid=xxx]
+ * GET /api/thirdAuth/genAuthUrl?uid=xxx&platform=xxx（pid 不下发，由后端处理）
  * @param {string} uid - 用户标识
- * @param {string} platform - 平台标识（如 vip）
- * @param {string} [pid] - 推广位ID，可不传
+ * @param {string} platform - 平台标识（vip / pdd）
  */
-async function genAuthUrl(uid, platform, pid) {
+async function genAuthUrl(uid, platform) {
   try {
     const query = [
       `uid=${uid || ''}`,
       platform ? `platform=${platform}` : '',
-      pid ? `pid=${pid}` : '',
     ].filter(Boolean).join('&');
     const result = await request(`${BASE_URL}/api/thirdAuth/genAuthUrl?${query}`);
     console.log('[API] genAuthUrl 响应:', result);
@@ -607,29 +603,31 @@ async function getTranUrl(sourceUrl, uid) {
 }
 
 /**
- * 获取商品推广链接（按商品 ID，商品详情页「前往购买」用）
+ * 获取商品推广链接（按商品 ID，商品详情页「前往购买」/ 首页多多好货卡片用）
  * GET /api/tranUrl/genUrlByGoodsId?platform=vip&goodsId=xxx&uid=xxx&pid=xxx
+ * pdd 平台不下发 pid（由后端处理）：GET /api/tranUrl/genUrlByGoodsId?platform=pdd&goodsId=xxx&uid=xxx
  *
- * 成功返回: { result: true, goodsId, urls: { h5_url, weapp_url, deeplink_url, command } }
+ * 成功返回: { result: true, goodsId, urls: { h5_url, weapp_url, weapp_app_id, deeplink_url, command } }
  *
  * @param {Object} opts
  * @param {string} opts.goodsId  - 商品 ID
- * @param {string} [opts.platform='vip'] - 平台标识
+ * @param {string} [opts.platform='vip'] - 平台标识（vip / pdd）
  * @param {string} [opts.uid]    - 当前用户 uid（默认取 USER_CONFIG.uid）
- * @param {string} [opts.pid]    - 推广位 ID
+ * @param {string} [opts.pid]    - 推广位 ID（vip 默认 GOODS_GEN_URL_PID；pdd 不下发）
  * @returns {Promise<Object|null>} 原始响应，失败返回 null
  */
 async function getGoodsTranUrlByGoodsId({ goodsId, platform = 'vip', uid = USER_CONFIG.uid, pid }) {
   if (!goodsId || !uid) return null;
-  if (!pid) pid = GOODS_GEN_URL_PID;
+  // pid 仅 vip 平台默认下发；其他平台（pdd 等）由后端处理，不传
+  if (platform === 'vip' && !pid) pid = GOODS_GEN_URL_PID;
 
   try {
     const query = [
       `platform=${encodeURIComponent(platform)}`,
       `goodsId=${encodeURIComponent(goodsId)}`,
       `uid=${encodeURIComponent(uid)}`,
-      `pid=${encodeURIComponent(pid)}`,
-    ].join('&');
+      pid ? `pid=${encodeURIComponent(pid)}` : '',
+    ].filter(Boolean).join('&');
 
     const url = `${BASE_URL}/api/tranUrl/genUrlByGoodsId?${query}`;
     console.log('[API] getGoodsTranUrlByGoodsId 请求:', url);
@@ -907,6 +905,33 @@ async function fetchMeituanIndexGoods({ longitude = '', latitude = '' } = {}) {
   }
 }
 
+/**
+ * 首页 - 多多好货（tab=3，拼多多），一次返回（暂不分页）
+ * GET {base}/api/indexList?tab=3
+ * 返回为顶层数组（与 tab=1/2 的包装结构不同）：
+ *   [{ id, goods_name, goods_image_url, market_price, sale_price, platform:'pdd', goods_platform_id, update_time, create_time }]
+ * 说明：返回原始数组，由调用方（首页 formatPddList）映射为展示结构
+ *
+ * @returns {Promise<{list: Array}>} list 为接口原始数组
+ */
+async function fetchPddIndexGoods() {
+  try {
+    const url = `${BASE_URL}/api/indexList?${buildQuery({ tab: 3 })}`;
+    console.log('[API] fetchPddIndexGoods 请求URL:', url);
+    const result = await request(url);
+
+    if (!Array.isArray(result)) {
+      console.warn('[API] fetchPddIndexGoods 返回异常（非数组）:', result);
+      return { list: [] };
+    }
+
+    return { list: result };
+  } catch (err) {
+    console.warn('[API] fetchPddIndexGoods 失败:', err.message);
+    return { list: [] };
+  }
+}
+
 // ==================== 订单列表 ====================
 
 /**
@@ -983,6 +1008,7 @@ module.exports = {
   getProductDetail,
   fetchVipIndexGoods,
   fetchMeituanIndexGoods,
+  fetchPddIndexGoods,
   loginByOpenid,
   checkAuth,
   genAuthUrl,

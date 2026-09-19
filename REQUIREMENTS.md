@@ -1,7 +1,7 @@
 # 值物APP (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.12.7  
-> 最后更新：2026-09-14
+> 多平台 CPS 返利小程序 | 版本 v0.13.2  
+> 最后更新：2026-09-20
 
 ---
 
@@ -96,7 +96,7 @@ huigenghao/
 - **顶部布局**：移除独立标题导航栏，页面内容从屏幕最顶开始；搜索框置顶固定（`position: sticky`），头部整块橙色渐变 `#ff4d00 → #ff9402` 背景（含状态栏区域），顶部间距动态读取胶囊按钮上边缘使其与搜索框同高、水平对齐，右侧自动避让胶囊宽度，页面滑动时头部固定不随内容滚动
 - 搜索入口：点击置顶搜索框（占位文案「搜索全网好物」）跳转商品搜索页
 - 转链按钮文案「查找专属优惠」（转换中显示「正在转换...」），样式为主色渐变胶囊（`linear-gradient(135deg, #ff4d00, #ff9402)` + 白字）；下方「粘贴链接」「平台入口」区块收窄为主色系圆角留白卡片
-- **精选好物（唯品好货 / 美团热销双 tab）**：精选好物区改为两个 tab——左侧「唯品好货」调用 `GET {BASE_URL}/api/indexList?tab=1&uid=xxx&offset=0&pageSize=10`，携带 `offset/nextPageOffset` 触底翻页加载唯品会推荐，双列瀑布流展示（券后价 + 删除线原价），点击卡片跳商品详情页；右侧「美团热销」调用 `GET {BASE_URL}/api/indexList?tab=2&longitude=..&latitude=..`，携带首页模糊定位经纬度加载附近美团热销团购（接口一次返回暂不分页），卡片展示主图/标题/门店·品牌/券后价/原价，点击经 `getMeituanGoodsReferralLink` 转链后跳美团小程序；两 tab 数据源为同一聚合接口 `/api/indexList`（Host 统一取自 `utils/config.js` 的 `BASE_URL`，不再硬编码联调地址）；平台筛选参数（`jxCode` / `platform` / `listTopiId`）已下沉到后端按 `tab` 判断，前端不再下发；唯品好货（tab=1）额外携带当前用户 `uid`（取自 `USER_CONFIG.uid`，未登录为空时不下发该参数）；首次进入页面默认加载唯品好货，切换美团热销时首次才发起请求；手机号登录成功后会携带新 `uid` 重新拉取一次唯品好货列表
+- **精选好物（唯品好货 / 美团热销 / 多多好货三 tab）**：精选好物区改为三个 tab——「唯品好货」调用 `GET {BASE_URL}/api/indexList?tab=1&uid=xxx&offset=0&pageSize=10`，携带 `offset/nextPageOffset` 触底翻页加载唯品会推荐，双列瀑布流展示（券后价 + 删除线原价），点击卡片跳商品详情页；「美团热销」调用 `GET {BASE_URL}/api/indexList?tab=2&longitude=..&latitude=..`，携带首页模糊定位经纬度加载附近美团热销团购（接口一次返回暂不分页），卡片展示主图/标题/门店·品牌/券后价/原价，点击经 `getMeituanGoodsReferralLink` 转链后跳美团小程序；第三个 tab「多多好货」调用 `GET {BASE_URL}/api/indexList?tab=3`（一次返回暂不分页，返回结构与 tab=1/2 不同，为顶层数组 `[{ id, goods_name, goods_image_url, market_price, sale_price, platform:'pdd', goods_platform_id, update_time, create_time }]`），双列瀑布流展示（券后价 `sale_price` + 删除线原价 `market_price`），点击卡片不进商品详情，依次校验：未登录先弹手机号登录 → 已登录则调 `GET /api/thirdAuth/checkAuth?uid=xxx&platform=pdd`（`pid` 不下发由后端处理）校验拼多多授权，未授权弹「去授权」提示窗，确认后调 `GET /api/thirdAuth/genAuthUrl?uid=xxx&platform=pdd` 取 `weapp_url`（appId 兜底 `wxa918198f16869201`）跳拼多多小程序授权页；已授权则调 `GET {BASE_URL}/api/tranUrl/genUrlByGoodsId?platform=pdd&goodsId=xxx&uid=xxx`（`goodsId` 取商品 `goods_platform_id`，`pid` 不下发由后端处理），成功后取 `urls.weapp_url`（小程序路径）与 `urls.weapp_app_id`（缺失兜底拼多多 appId `wxa918198f16869201`）跳拼多多小程序；三 tab 数据源为同一聚合接口 `/api/indexList`（Host 统一取自 `utils/config.js` 的 `BASE_URL`，不再硬编码联调地址）；平台筛选参数（`jxCode` / `platform` / `listTopiId`）已下沉到后端按 `tab` 判断，前端不再下发；唯品好货（tab=1）额外携带当前用户 `uid`（取自 `USER_CONFIG.uid`，未登录为空时不下发该参数）；首次进入页面默认加载唯品好货，切换美团热销/多多好货时首次才发起请求；手机号登录成功后会携带新 `uid` 重新拉取一次唯品好货列表
 - **链接转换**：支持粘贴拼多多和唯品会商品链接，调 `GET /api/tranUrl` 获取推广链接；结果卡片**当前只展示 `h5_url`（H5 推广链接）**，小程序路径 / App 唤起链接暂不展示（`linkResult` 仍保留字段备用）；输入框占位文案「支持粘贴唯品会/拼多多 商品链接查找优惠」，输入区为压缩高度圆角灰底卡片，右下角「粘贴」按钮加宽（`min-width: 172rpx`）便于点击
 - **今日最优惠活动**：原「电商购物」五个 icon 入口下线，改为首页一行三个 banner 坑位（外层不再展示区块大标题），每张卡片结构为「左侧彩色圆 icon + 主标题 + 子标题 + 商品大图」，三段式纵向布局；数据由接口下发（接口正在开发中，期望响应 `[{ id, iconBg, icon, title, subtitle, image, link?, targetType? }]`，最多取前 3 个），对接完成后在 `attached` 启用 `loadActivityBanners()`；接口未就绪前展示三条内置占位数据，缺图时显示「商品图占位」色块
   - 唯品会 appId: `wxe9714e742209d35f`
@@ -127,7 +127,7 @@ huigenghao/
 **已关联的平台**：
 
 - 授权校验：`GET /api/thirdAuth/checkAuth`
-- 获取授权链接：`GET /api/thirdAuth/genAuthUrl`（pid: `43384525_317172887`）
+- 获取授权链接：`GET /api/thirdAuth/genAuthUrl`（pid 不下发，由后端处理）
 
 **待优化**：
 - [ ] 添加个人中心入口（订单、收益、设置等）
@@ -247,7 +247,7 @@ huigenghao/
 
 **API**：`GET /api/goods?goodsId=xxx&chanTag=xxx&openid=xxx`
 - 适配函数：`adaptGoodsDetail` 适配真实接口新结构 `{ result: true, data: { goodsId, goodsName, images, detailImages, prices, commission, tags, url } }` → 内部统一格式
-- 按商品 ID 转链：`GET /api/tranUrl/genUrlByGoodsId?platform=vip&goodsId=xxx&uid=xxx&pid=xxx`，返回 `{ result: true, urls: { weapp_url } }`
+- 按商品 ID 转链：`GET /api/tranUrl/genUrlByGoodsId?platform=vip&goodsId=xxx&uid=xxx&pid=xxx`，返回 `{ result: true, urls: { weapp_url } }`；同一接口也用于首页多多好货（`platform=pdd`，不下发 `pid`，返回多带 `weapp_app_id`，详见 3.1）
 - Mock 兜底：`mockGoodsDetail`
 
 ---
@@ -432,13 +432,13 @@ wx.login → 保存 code → GET /api/weixin/openid → 保存 openid, session_k
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/thirdAuth/checkAuth` | GET | 校验是否已授权，返回 `{ isAuth: true/false }` |
-| `/api/thirdAuth/genAuthUrl` | GET | 生成授权链接，参数 `?uid=xxx&platform=xxx&pid=xxx`，返回 `{ authUrl: { weapp_url } }` |
+| `/api/thirdAuth/checkAuth` | GET | 校验是否已授权，参数 `?uid=xxx&platform=xxx`（pid 不下发，由后端处理），返回 `{ isAuth: true/false }` |
+| `/api/thirdAuth/genAuthUrl` | GET | 生成授权链接，参数 `?uid=xxx&platform=xxx`（pid 不下发，由后端处理），返回 `{ authUrl: { weapp_url } }` |
 
 **跳转流程**：
 ```
 点击唯品会/拼多多 icon → checkAuth → isAuth=true? → navigateToMiniProgram(购物首页)
-                                      → isAuth=false? → genAuthUrl(pid) → navigateToMiniProgram(授权页)
+                                      → isAuth=false? → genAuthUrl → navigateToMiniProgram(授权页)
 ```
 
 ### 4.5 后续待定接口
@@ -701,6 +701,9 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-09-20 | v0.13.2 | **多多好货点击增加登录 + 拼多多授权双重校验**：点击卡片依次校验未登录（弹手机号登录）→ `GET /api/thirdAuth/checkAuth?uid=xxx&platform=pdd` 授权状态，未授权弹「前往拼多多授权」提示窗，确认后 `GET /api/thirdAuth/genAuthUrl?uid=xxx&platform=pdd` 取 `weapp_url`（appId 兜底 `wxa918198f16869201`）跳拼多多小程序授权页，已授权才继续转链跳商品；**checkAuth / genAuthUrl 接口去掉 pid 参数**（pid 由后端处理，全站调用方均不再下发） | [3.1](#31-首页-pagesindex-)、[4.4](#44-第三方平台授权接口-) |
+| 2026-09-20 | v0.13.1 | **多多好货点击直接转链跳拼多多小程序**：卡片不进商品详情，未登录先弹手机号登录，登录后调 `GET /api/tranUrl/genUrlByGoodsId?platform=pdd&goodsId=xxx&uid=xxx`（`goodsId` 取 `goods_platform_id`，`pid` 不下发由后端处理），成功取 `urls.weapp_url` + `urls.weapp_app_id`（兜底 `wxa918198f16869201`）`navigateToMiniProgram` 跳拼多多小程序；`getGoodsTranUrlByGoodsId` 调整为 pid 仅 vip 平台默认下发 | [3.1](#31-首页-pagesindex-)、[3.5](#35-商品详情页-pagesgoods-) |
+| 2026-09-20 | v0.13.0 | **首页精选好物新增第三个 tab「多多好货」（拼多多）**：调用 `GET {BASE_URL}/api/indexList?tab=3`，返回为顶层数组（与 tab=1/2 的包装结构不同）`[{ id, goods_name, goods_image_url, market_price, sale_price, platform:'pdd', goods_platform_id }]`，`utils/api.js` 新增 `fetchPddIndexGoods()`，首页新增 `loadPddGoods()` / `formatPddList()`，首次切到该 tab 才请求（一次返回暂不分页），双列瀑布流展示（券后价 sale_price + 删除线原价 market_price）；点击卡片暂提示「跳转即将上线」（拼多多转链/跳转待后端接口就绪后接入） | [3.1](#31-首页-pagesindex-)、[4.1](#41-通用约定) |
 | 2026-09-14 | v0.12.7 | **首页转链区文案与按钮样式微调**：粘贴框占位文案改为「支持粘贴唯品会/拼多多 商品链接查找优惠」（收窄为支持的平台）；「粘贴」按钮加宽至 `min-width: 172rpx`（字号 26rpx、高度 56rpx）便于点击；「查找专属优惠」按钮由白底黑框改为主色渐变胶囊（`linear-gradient(135deg, #ff4d00, #ff9402)` + 白字） | [3.1](#31-首页-pagesindex-)、[6.1](#61-色彩系统) |
 | 2026-09-13 | v0.12.6 | **首页唯品好货登录后刷新 + 清理废弃接口**：手机号登录成功后调用 `loadVipGoods()` 重新拉取唯品好货（携带新 `uid`，覆盖首屏未登录时的结果）；移除已废弃的 `/api/vip/goodsList` 接口封装 `getGoodsList`（含导出，全项目无调用方） | [3.1](#31-首页-pagesindex-)、[4.1](#41-通用约定) |
 | 2026-09-13 | v0.12.5 | **`/api/indexList` 参数调整**：平台筛选参数下沉到后端——tab=1（唯品好货）移除 `jxCode`、新增 `uid`（取 `USER_CONFIG.uid`，未登录不下发），tab=2（美团热销）移除 `platform` / `listTopiId`，前端仅保留 `tab` 与分页/定位参数；首页两处 `fetchVipIndexGoods` 调用同步去掉 `jxCode` | [3.1](#31-首页-pagesindex-)、[4.1](#41-通用约定) |

@@ -74,7 +74,7 @@
     </view>
   </view>
 
-  <!-- 精选商品：唯品好货 / 美团热销 双 tab -->
+  <!-- 精选商品：唯品好货 / 美团热销 / 多多好货 三 tab -->
   <view class="goods-section">
     <!-- tab 切换 -->
     <view class="goods-tabs">
@@ -88,6 +88,11 @@
         data-tab="2"
         bindtap="onSwitchTab"
       >美团热销</view>
+      <view
+        class="goods-tab {{activeTab === 3 ? 'goods-tab-active' : ''}}"
+        data-tab="3"
+        bindtap="onSwitchTab"
+      >多多好货</view>
     </view>
 
     <!-- ==================== 唯品好货（tab=1） ==================== -->
@@ -129,7 +134,7 @@
     </block>
 
     <!-- ==================== 美团热销（tab=2） ==================== -->
-    <block wx:else>
+    <block wx:elif="{{activeTab === 2}}">
       <!-- 首次加载中 -->
       <view class="goods-status" wx:if="{{mtLoading && mtList.length === 0}}">
         <text>正在加载附近热销...</text>
@@ -166,6 +171,44 @@
         <text>— 已为你推荐附近热销 —</text>
       </view>
     </block>
+
+    <!-- ==================== 多多好货（tab=3，拼多多） ==================== -->
+    <block wx:elif="{{activeTab === 3}}">
+      <!-- 首次加载中 -->
+      <view class="goods-status" wx:if="{{pddLoading && pddList.length === 0}}">
+        <text>正在加载商品...</text>
+      </view>
+      <!-- 空数据 -->
+      <view class="goods-status" wx:elif="{{pddLoaded && pddList.length === 0}}">
+        <text>暂无商品数据</text>
+      </view>
+      <!-- 商品瀑布流 -->
+      <view class="waterfall-grid" wx:else>
+        <view
+          class="goods-card"
+          wx:for="{{pddList}}"
+          wx:key="id"
+          data-item="{{item}}"
+          bindtap="onGoodsTap"
+        >
+          <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
+          <view class="goods-info">
+            <text class="goods-title">{{item.title}}</text>
+            <view class="goods-price-row">
+              <text class="goods-price">{{item.priceText}}</text>
+              <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <!-- 多多好货一次加载完成，展示推荐底标 -->
+      <view class="goods-loading" wx:if="{{pddLoading && pddList.length > 0}}">
+        <text>加载中...</text>
+      </view>
+      <view class="goods-end" wx:if="{{pddLoaded && pddList.length > 0}}">
+        <text>— 已为你推荐多多好货 —</text>
+      </view>
+    </block>
   </view>
 </view>
 
@@ -190,5 +233,16 @@
     <view class="login-desc">当前尚未授权唯品会账号，需先前往唯品会小程序完成授权，才能正常获取专属推广链接。</view>
     <button class="login-phone-btn" bindtap="onConfirmVipAuth">去授权</button>
     <view class="login-skip" bindtap="closeVipAuthModal">暂不授权</view>
+  </view>
+</view>
+
+<!-- 拼多多授权提示弹窗：点击多多好货商品未授权时弹出，确认后才跳转授权页 -->
+<view class="login-modal" wx:if="{{showPddAuthModal}}" catchtouchmove="noop">
+  <view class="login-mask" bindtap="closePddAuthModal"></view>
+  <view class="login-dialog">
+    <view class="login-title">前往拼多多授权</view>
+    <view class="login-desc">当前尚未授权拼多多账号，需先前往拼多多小程序完成授权，才能正常获取专属推广链接。</view>
+    <button class="login-phone-btn" bindtap="onConfirmPddAuth">去授权</button>
+    <view class="login-skip" bindtap="closePddAuthModal">暂不授权</view>
   </view>
 </view>

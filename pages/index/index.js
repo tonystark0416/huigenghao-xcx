@@ -2,6 +2,8 @@
 const {
   fetchVipIndexGoods,
   fetchMeituanIndexGoods,
+  fetchPddIndexGoods,
+  getGoodsTranUrlByGoodsId,
   getMeituanGoodsReferralLink,
   getMeituanReferralLink,
   getIndexActivityBanners,
@@ -16,8 +18,12 @@ const { BASE_URL } = require('../../utils/config');
 const MEITUAN_APP_ID = 'wxde8ac0a21135c07d';
 // 唯品会小程序 appId（跳转目标）
 const VIP_APP_ID = 'wxe9714e742209d35f';
+// 拼多多小程序 appId（跳转目标，转链返回 weapp_app_id 时以其为准）
+const PDD_APP_ID = 'wxa918198f16869201';
 // 唯品会第三方授权平台标识（/api/thirdAuth/* 的 platform 参数）
 const VIP_AUTH_PLATFORM = 'vip';
+// 拼多多第三方授权平台标识（/api/thirdAuth/* 的 platform 参数）
+const PDD_AUTH_PLATFORM = 'pdd';
 // 转链返回中 key=4 对应小程序路径
 const MINI_PROGRAM_LINK_KEY = '4';
 
@@ -32,6 +38,8 @@ Component({
     showLoginModal: false,
     // 唯品会第三方授权提示弹窗（未授权时提示用户去授权，确认后才跳转）
     showVipAuthModal: false,
+    // 拼多多第三方授权提示弹窗（多多好货卡片未授权时提示去授权）
+    showPddAuthModal: false,
     // 今日最优惠活动：由 /api/banner/indexBannerList 下发；不足两条或请求失败时整区隐藏（保持空数组）
     activityBanners: [],
     linkInput: '',
@@ -39,7 +47,7 @@ Component({
     linkConverting: false,
     linkResult: null,
     showLinkResult: false,
-    // 精选商品双 tab：1=唯品好货 2=美团热销
+    // 精选商品三 tab：1=唯品好货 2=美团热销 3=多多好货
     activeTab: 1,
     // 唯品好货（tab=1，offset 分页）
     vipList: [],
@@ -52,6 +60,11 @@ Component({
     mtLoading: false,
     mtLoaded: false,
     mtJumping: false,
+    // 多多好货（tab=3，拼多多商品，切换时加载一次，暂不分页）
+    pddList: [],
+    pddLoading: false,
+    pddLoaded: false,
+    pddJumping: false,
   },
 
   lifetimes: {
@@ -635,7 +648,7 @@ Component({
     },
 
     /**
-     * 页面触底加载更多（唯品好货支持 offset 分页；美团热销接口暂不分页）
+     * 页面触底加载更多（唯品好货支持 offset 分页；美团热销/多多好货接口暂不分页）
      */
     onReachBottom() {
       if (this.data.activeTab === 1) {
@@ -643,11 +656,11 @@ Component({
       }
     },
 
-    // ==================== 商品列表（双 tab） ====================
+    // ==================== 商品列表（三 tab） ====================
 
     /**
      * 切换商品 tab
-     * @param {Event} e - data-tab: 1=唯品好货 2=美团热销
+     * @param {Event} e - data-tab: 1=唯品好货 2=美团热销 3=多多好货
      */
     onSwitchTab(e) {
       const tab = Number(e.currentTarget.dataset.tab);
@@ -656,6 +669,10 @@ Component({
       // 美团热销首次进入才按定位加载
       if (tab === 2 && !this.data.mtLoaded && !this.data.mtLoading) {
         this.loadMeituanGoods();
+      }
+      // 多多好货首次进入才加载
+      if (tab === 3 && !this.data.pddLoaded && !this.data.pddLoading) {
+        this.loadPddGoods();
       }
     },
 
@@ -738,6 +755,28 @@ Component({
     },
 
     /**
+     * 加载多多好货（tab=3，拼多多商品，一次请求，暂不分页）
+     */
+    async loadPddGoods() {
+      if (this.data.pddLoading) return;
+      this.setData({ pddLoading: true });
+
+      try {
+        const res = await fetchPddIndexGoods();
+
+        console.log('[Index] loadPddGoods 商品数:', res.list.length);
+        this.setData({
+          pddList: this.formatPddList(res.list),
+          pddLoaded: true,
+          pddLoading: false,
+        });
+      } catch (err) {
+        console.error('[Index] 加载多多好货失败:', err);
+        this.setData({ pddLoading: false });
+      }
+    },
+
+    /**
      * 格式化唯品会商品（tab=1）
      */
     formatGoodsList(list) {
@@ -780,13 +819,38 @@ Component({
     },
 
     /**
-     * 点击商品卡片：唯品好货跳详情页，美团热销转链后跳美团小程序
+     * 格式化多多好货商品（tab=3）：拼多多字段 → 双列卡展示结构
+     */
+    formatPddList(list) {
+      if (!Array.isArray(list)) return [];
+      return list.map(item => {
+        const salePrice = parseFloat(item.sale_price) || 0;
+        const marketPrice = parseFloat(item.market_price) || 0;
+        return {
+          id: item.id || '',
+          goodsId: item.goods_platform_id || '',
+          type: 'pdd',
+          platform: item.platform || 'pdd',
+          title: item.goods_name || '',
+          image: item.goods_image_url || '',
+          priceText: salePrice > 0 ? '¥' + salePrice.toFixed(2) : '',
+          originalPriceText: marketPrice > salePrice ? '¥' + marketPrice.toFixed(2) : '',
+        };
+      });
+    },
+
+    /**
+     * 点击商品卡片：唯品好货跳详情页，美团热销转链后跳美团小程序，多多好货转链后跳拼多多小程序
      */
     onGoodsTap(e) {
       const { item } = e.currentTarget.dataset;
       if (!item) return;
       if (item.type === 'meituan') {
         this.openMeituanGoods(item);
+        return;
+      }
+      if (item.type === 'pdd') {
+        this.openPddGoods(item);
         return;
       }
       this._doVipGoodsTap(item.id);
@@ -845,6 +909,137 @@ Component({
           wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
         },
       });
+    },
+
+    /**
+     * 多多好货：不进详情页，点击后依次校验登录 → 拼多多第三方授权，通过后转链跳拼多多小程序：
+     * 1. 未登录 → ensureLogin 弹手机号登录
+     * 2. 已登录但未在拼多多授权 → 弹「去授权」提示窗，确认后调
+     *    /api/thirdAuth/genAuthUrl（platform=pdd）取 weapp_url 跳拼多多小程序授权页
+     * 3. 已授权 → /api/tranUrl/genUrlByGoodsId（platform=pdd，pid 不下发由后端处理）
+     *    取 urls.weapp_url + urls.weapp_app_id 跳拼多多小程序
+     */
+    async openPddGoods(item) {
+      const goodsId = item && item.goodsId;
+      if (!goodsId) {
+        wx.showToast({ title: '商品信息缺失', icon: 'none' });
+        return;
+      }
+
+      // 转链需要用户 uid，未登录先弹出登录
+      if (!this.ensureLogin(() => this.openPddGoods(item))) return;
+
+      if (this.data.pddJumping) return;
+      this.setData({ pddJumping: true });
+
+      wx.showLoading({ title: '加载中...', mask: true });
+      try {
+        const uid = getApp().globalData.userId || '';
+        if (!uid) {
+          wx.showToast({ title: '请先完成登录授权', icon: 'none' });
+          return;
+        }
+
+        // Step 1: 校验拼多多第三方授权状态（已授权则直接转链，不再调 genAuthUrl）
+        const authRes = await checkAuth(uid, PDD_AUTH_PLATFORM);
+        console.log('[Index] 拼多多授权状态响应:', authRes);
+        // 真实结构示例: { result: true, authStatus: { isAuth: true } }
+        // 兼容顶层 isAuth / authStatus.isAuth / data.isAuth / result 多种返回
+        const authBody = authRes && (authRes.authStatus || authRes.data || authRes);
+        const authFlag = authBody && (authBody.isAuth !== undefined ? authBody.isAuth : (authRes && authRes.result));
+        const isPddAuthed = authFlag === true || authFlag === 1 || authFlag === '1' || authFlag === 'true';
+
+        if (!isPddAuthed) {
+          // 未授权：不直接跳转，先弹窗提示用户去授权，确认后才跳拼多多小程序授权页
+          console.log('[Index] 拼多多未授权，弹出授权提示');
+          this.setData({ showPddAuthModal: true });
+          return;
+        }
+
+        // Step 2: 已授权，转链后跳拼多多小程序
+        const res = await getGoodsTranUrlByGoodsId({ goodsId, platform: 'pdd', uid });
+        if (!res || res.result !== true || !res.urls || !res.urls.weapp_url) {
+          console.error('[Index] 拼多多商品转链失败:', res);
+          wx.showToast({ title: '获取推广链接失败，请稍后重试', icon: 'none' });
+          return;
+        }
+
+        // 转链返回的小程序 appId，缺失时兜底拼多多固定 appId
+        const appId = res.urls.weapp_app_id || PDD_APP_ID;
+        console.log('[Index] 跳转拼多多小程序, appId:', appId, '路径:', res.urls.weapp_url);
+        wx.navigateToMiniProgram({
+          appId,
+          path: res.urls.weapp_url,
+          success: () => {
+            console.log('[Index] 拼多多商品跳转成功');
+          },
+          fail: (err) => {
+            console.error('[Index] 拼多多商品跳转失败:', err);
+            wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
+          },
+        });
+      } catch (err) {
+        console.error('[Index] 拼多多商品跳转异常:', err);
+        wx.showToast({ title: '网络异常，请重试', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+        this.setData({ pddJumping: false });
+      }
+    },
+
+    /**
+     * 关闭拼多多授权提示弹窗
+     */
+    closePddAuthModal() {
+      this.setData({ showPddAuthModal: false });
+    },
+
+    /**
+     * 拼多多授权提示弹窗「去授权」：
+     * 先 /api/thirdAuth/genAuthUrl（platform=pdd）获取小程序授权路径，再跳拼多多小程序完成授权
+     */
+    async onConfirmPddAuth() {
+      if (this._authJumping) return;
+      this._authJumping = true;
+      this.setData({ showPddAuthModal: false });
+
+      const uid = getApp().globalData.userId || '';
+      if (!uid) {
+        this._authJumping = false;
+        wx.showToast({ title: '请先完成登录授权', icon: 'none' });
+        return;
+      }
+
+      wx.showLoading({ title: '获取授权链接...', mask: true });
+      try {
+        const urlRes = await genAuthUrl(uid, PDD_AUTH_PLATFORM);
+        // 真实结构示例: { result: true, authUrl: { h5_url, weapp_url, deeplink_url } }
+        // 用 weapp_url 跳拼多多小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
+        const urlBody = urlRes && (urlRes.authUrl || urlRes.data || urlRes);
+        const authPath = (urlBody && (urlBody.weapp_url || (urlBody.authUrl && urlBody.authUrl.weapp_url))) || '';
+        // 授权跳转目标 appId：优先取返回的 weapp_app_id，缺失时兜底拼多多固定 appId
+        const authAppId = (urlBody && urlBody.weapp_app_id) || PDD_APP_ID;
+        if (!authPath) {
+          console.error('[Index] 获取拼多多授权链接失败:', urlRes);
+          wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
+          return;
+        }
+        console.log('[Index] 跳转拼多多授权页, appId:', authAppId, '路径:', authPath);
+        wx.navigateToMiniProgram({
+          appId: authAppId,
+          path: authPath,
+          fail: (err) => {
+            console.error('[Index] 跳转拼多多授权页失败:', err);
+            wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
+          },
+        });
+      } catch (err) {
+        console.error('[Index] 获取拼多多授权链接异常:', err);
+        wx.showToast({ title: '获取授权链接失败，请重试', icon: 'none' });
+      } finally {
+        wx.hideLoading();
+        this._authJumping = false;
+      }
     },
 
     // ==================== 其他 ====================
