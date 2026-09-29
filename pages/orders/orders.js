@@ -2,8 +2,6 @@
 const { getOrderList } = require('../../utils/api');
 const { BASE_URL } = require('../../utils/config');
 
-const PAGE_SIZE = 10;
-
 // 平台 Tab 配置（当前支持唯品会 / 美团）
 const PLATFORM_TABS = [
   { key: 'vip', name: '唯品会', color: '#E4007F' },

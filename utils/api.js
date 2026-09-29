@@ -219,7 +219,7 @@ function mockSearch({ keyword, platform, page, pageSize }) {
 /**
  * 搜索商品
  * 
- * 真实接口 (GET): http://hgh.pangpai-car.com/api/search
+ * 真实接口 (GET): {BASE_URL}/api/search
  * 请求参数 (query):
  *   - keyword  {string}  搜索关键词
  *   - uid      {string}  用户标识
@@ -354,7 +354,7 @@ function mockGoodsDetail(goodsId) {
 /**
  * 获取商品详情
  *
- * 真实接口 (GET): https://hgh.pangpai-car.com/api/goods/getDetail
+ * 真实接口 (GET): {BASE_URL}/api/goods/getDetail
  * 请求参数 (query):
  *   - goodsId  {string}  商品ID
  *   - pid      {string}  推广位 ID
@@ -403,7 +403,7 @@ async function getProductDetail(goodsId, platform = 'vip') {
 
 /**
  * 通过 openid 登录
- * POST http://hgh.pangpai-car.com/api/user/loginByOpenid
+ * POST {BASE_URL}/api/user/loginByOpenid
  * @param {string} openid - 用户 openid
  * @returns {Promise<Object>}
  */
@@ -499,7 +499,7 @@ function detectPlatform(url) {
 /**
  * 链接转换：将电商商品链接转为 CPS 推广链接
  *
- * 接口: GET https://hgh.pangpai-car.com/api/tranUrl
+ * 接口: GET {BASE_URL}/api/tranUrl
  * 参数:
  *   - uid        {string} 当前用户 uid
  *   - pid        {string} 推广位ID，固定 43384525_317172887
@@ -568,37 +568,6 @@ async function convertLink(url, uid) {
   } catch (err) {
     console.warn('[API] convertLink 失败:', err.message);
     return { code: -3, message: '网络异常，请重试' };
-  }
-}
-
-/**
- * 获取唯品会商品推广链接（商品详情页「前往购买」用）
- * GET /api/tranUrl?uid=xxx&pid=default_pid&source_url=xxx
- *
- * 成功返回: { code: 200, urls: { h5_url, weapp_url, weapp_short_link, deeplink_url } }
- *
- * @param {string} sourceUrl - 商品原始链接（详情接口的 destUrl）
- * @param {string} uid - 当前用户 uid
- * @returns {Promise<Object|null>} 原始响应，失败返回 null
- */
-async function getTranUrl(sourceUrl, uid) {
-  if (!sourceUrl || !uid) return null;
-
-  try {
-    const query = [
-      `uid=${encodeURIComponent(uid)}`,
-      `pid=${encodeURIComponent('default_pid')}`,
-      `source_url=${encodeURIComponent(sourceUrl)}`,
-    ].join('&');
-
-    const url = `${BASE_URL}/api/tranUrl?${query}`;
-    console.log('[API] getTranUrl 请求:', url);
-    const result = await request(url);
-    console.log('[API] getTranUrl 响应:', JSON.stringify(result));
-    return result;
-  } catch (err) {
-    console.warn('[API] getTranUrl 失败:', err.message);
-    return null;
   }
 }
 
@@ -1013,7 +982,6 @@ module.exports = {
   checkAuth,
   genAuthUrl,
   convertLink,
-  getTranUrl,
   getGoodsTranUrlByGoodsId,
   detectPlatform,
   getBanners,
