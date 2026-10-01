@@ -8,6 +8,9 @@
     </view>
   </view>
 
+  <!-- 顶部渐变延伸：让内容区从橙色氛围中自然过渡，转链卡片悬浮其上 -->
+  <view class="page-hero"></view>
+
   <!-- 粘贴购物链接 -->
   <view class="link-section">
     <view class="link-input-wrap">
@@ -19,7 +22,7 @@
         bindinput="onLinkInput"
         maxlength="-1"
       />
-      <view class="link-paste-btn" bindtap="onPasteLink">粘贴</view>
+      <view class="link-paste-btn" hover-class="link-paste-btn-hover" hover-stay-time="80" bindtap="onPasteLink">粘贴</view>
     </view>
     <view class="link-find-btn {{linkConverting ? 'btn-disabled' : ''}}" bindtap="onFindCoupon">
       {{linkConverting ? '正在转换...' : '查找专属优惠'}}
@@ -57,6 +60,8 @@
         wx:key="id"
         data-item="{{item}}"
         bindtap="onActivityTap"
+        hover-class="activity-card-hover"
+        hover-stay-time="80"
       >
         <!-- 左：商品大图（有图渲染 image，否则占位） -->
         <view class="activity-image">
@@ -113,11 +118,14 @@
           wx:key="id"
           data-item="{{item}}"
           bindtap="onGoodsTap"
+          hover-class="goods-card-hover"
+          hover-stay-time="80"
         >
           <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
           <view class="goods-info">
             <text class="goods-title">{{item.title}}</text>
             <view class="goods-price-row">
+              <text class="goods-price-flag">券后</text>
               <text class="goods-price">{{item.priceText}}</text>
               <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
             </view>
@@ -151,12 +159,15 @@
           wx:key="id"
           data-item="{{item}}"
           bindtap="onGoodsTap"
+          hover-class="goods-card-hover"
+          hover-stay-time="80"
         >
           <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
           <view class="goods-info">
             <text class="goods-title">{{item.title}}</text>
             <text class="goods-subtitle" wx:if="{{item.subtitle}}">{{item.subtitle}}</text>
             <view class="goods-price-row">
+              <text class="goods-price-flag">券后</text>
               <text class="goods-price">{{item.priceText}}</text>
               <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
             </view>
@@ -190,11 +201,14 @@
           wx:key="id"
           data-item="{{item}}"
           bindtap="onGoodsTap"
+          hover-class="goods-card-hover"
+          hover-stay-time="80"
         >
           <image class="goods-image" src="{{item.image}}" mode="widthFix" lazy-load />
           <view class="goods-info">
             <text class="goods-title">{{item.title}}</text>
             <view class="goods-price-row">
+              <text class="goods-price-flag">券后</text>
               <text class="goods-price">{{item.priceText}}</text>
               <text class="goods-original-price" wx:if="{{item.originalPriceText}}">{{item.originalPriceText}}</text>
             </view>

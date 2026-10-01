@@ -108,6 +108,8 @@
         class="product-card"
         data-id="{{item.id}}"
         bindtap="onProductTap"
+        hover-class="product-card-hover"
+        hover-stay-time="80"
       >
         <!-- 商品图片 -->
         <image class="product-img" src="{{item.image}}" mode="aspectFill" lazy-load="{{true}}"></image>

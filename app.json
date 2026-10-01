@@ -5,7 +5,8 @@
     "pages/orders/orders",
     "pages/logs/logs",
     "pages/search/search",
-    "pages/goods/goods"
+    "pages/goods/goods",
+    "pages/meituan-goods/meituan-goods"
   ],
   "window": {
     "navigationBarTextStyle": "black",

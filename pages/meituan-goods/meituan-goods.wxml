@@ -1,0 +1,96 @@
+<!--pages/meituan-goods/meituan-goods.wxml-->
+<view class="page">
+  <!-- 悬浮返回按钮（顶部导航已去除，图片置顶；top 与胶囊对齐） -->
+  <view class="nav-back-btn" style="{{navBackStyle}}" hover-class="nav-back-btn-hover" bindtap="onNavBack">
+    <view class="nav-back-icon"></view>
+  </view>
+
+  <block wx:if="{{loading}}">
+    <view class="loading-container">
+      <text class="loading-text">加载中...</text>
+    </view>
+  </block>
+
+  <block wx:elif="{{goods}}">
+    <scroll-view class="detail-scroll" scroll-y>
+      <!-- 商品主图 -->
+      <image class="goods-image" src="{{goods.image}}" mode="aspectFill"
+        data-url="{{goods.image}}" bindtap="previewMainImage"></image>
+
+      <!-- 价格区域 -->
+      <view class="price-section">
+        <view class="price-row">
+          <text class="price-symbol">¥</text>
+          <text class="price-value">{{goods.price}}</text>
+          <text wx:if="{{goods.originalPrice && goods.originalPrice !== goods.price}}" class="original-price">¥{{goods.originalPrice}}</text>
+          <text wx:if="{{goods.historyPriceLabel}}" class="price-label">{{goods.historyPriceLabel}}</text>
+        </view>
+
+        <!-- 预估返利 -->
+        <view wx:if="{{goods.rebate}}" class="rebate-row">
+          <text class="rebate-label">预估返利</text>
+          <text class="rebate-value">¥{{goods.rebate}}</text>
+        </view>
+      </view>
+
+      <!-- 商品标题 -->
+      <view class="info-section">
+        <text class="goods-title">{{goods.title}}</text>
+        <text wx:if="{{goods.sales}}" class="goods-sales">已售{{goods.sales}}</text>
+      </view>
+
+      <!-- 门店信息 -->
+      <view wx:if="{{goods.poiName}}" class="store-card">
+        <image wx:if="{{goods.poiLogoUrl}}" class="store-logo" src="{{goods.poiLogoUrl}}" mode="aspectFill"></image>
+        <view class="store-text">
+          <text class="store-name">{{goods.poiName}}</text>
+          <view class="store-meta">
+            <text wx:if="{{goods.distance}}" class="store-meta-item">距您{{goods.distance}}</text>
+            <text wx:if="{{goods.availablePoiNum > 0}}" class="store-meta-item">{{goods.availablePoiNum}}家门店可用</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 购买须知 -->
+      <view class="meta-section">
+        <view class="meta-title">购买须知</view>
+        <view wx:if="{{goods.validTimeText}}" class="meta-item">
+          <text class="meta-label">有效期</text>
+          <text class="meta-value">{{goods.validTimeText}}</text>
+        </view>
+        <view wx:if="{{goods.brandName}}" class="meta-item">
+          <text class="meta-label">品牌</text>
+          <text class="meta-value">{{goods.brandName}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-label">使用方式</text>
+          <text class="meta-value">购买后券发放至美团账号，可在美团App/小程序核销使用</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-bar">
+      <button class="buy-btn" bindtap="onBuyTap">前往购买</button>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view class="loading-container">
+      <text class="loading-text">商品信息获取失败</text>
+    </view>
+  </block>
+
+  <!-- 手机号登录弹窗（前往购买需登录获取 uid） -->
+  <view class="login-modal" wx:if="{{showLoginModal}}" catchtouchmove="noop">
+    <view class="login-mask" bindtap="closeLoginModal"></view>
+    <view class="login-dialog">
+      <view class="login-title">欢迎使用值物APP</view>
+      <view class="login-desc">购买前需要登录，请授权手机号</view>
+      <button class="login-phone-btn" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
+        手机号快捷登录
+      </button>
+      <view class="login-skip" bindtap="closeLoginModal">暂不登录</view>
+    </view>
+  </view>
+</view>

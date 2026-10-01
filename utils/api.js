@@ -685,6 +685,111 @@ async function getMeituanGoodsReferralLink(productViewSign) {
   }
 }
 
+// ==================== 美团商品详情 ====================
+
+/**
+ * 格式化配送距离文案（米 → "15.9km" / "580m"）
+ */
+function formatMeituanDistance(dist) {
+  const n = parseFloat(dist);
+  if (!n || isNaN(n)) return '';
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}km`;
+  return `${Math.round(n)}m`;
+}
+
+/**
+ * 格式化团购券有效期文案
+ * couponValidTimeType: 1=购买后 N 天内有效，其余按起止时间展示
+ */
+function formatMeituanValidTime(info) {
+  if (!info) return '';
+  const pad = (n) => (n < 10 ? '0' + n : String(n));
+  const fmt = (ts) => {
+    const d = new Date(ts * 1000);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  if (info.couponValidTimeType === 1) {
+    const day = Number(info.couponValidDay) || 0;
+    return day > 0 ? `购买后${day}天内有效` : '';
+  }
+  if (info.couponValidSTime && info.couponValidETime) {
+    return `${fmt(info.couponValidSTime)} 至 ${fmt(info.couponValidETime)} 有效`;
+  }
+  return '';
+}
+
+/**
+ * 将美团详情接口的商品字段映射为内部统一结构（详情页展示用）
+ *
+ * couponPackDetail / brandInfo / commissionInfo / deliverablePoiInfo /
+ * availablePoiInfo / couponValidTimeInfo → 扁平化展示字段
+ */
+function mapMeituanGoodsDetail(item) {
+  const coupon = item.couponPackDetail || {};
+  const brand = item.brandInfo || {};
+  const commission = item.commissionInfo || {};
+  const poi = item.deliverablePoiInfo || {};
+  const availablePoi = item.availablePoiInfo || {};
+  const validInfo = item.couponValidTimeInfo || {};
+  const pricePowerLabel = (coupon.productLabel && coupon.productLabel.pricePowerLabel) || {};
+
+  return {
+    skuViewId: coupon.skuViewId || '',
+    productViewSign: coupon.productViewSign || '',
+    title: coupon.name || '',
+    image: coupon.headUrl || '',
+    price: coupon.sellPrice || '',
+    originalPrice: coupon.originalPrice || '',
+    sales: coupon.saleVolume || '',
+    couponNum: coupon.couponNum || 0,
+    historyPriceLabel: pricePowerLabel.historyPriceLabel || '',
+    brandName: brand.brandName || '',
+    rebate: commission.commission || '',
+    rebatePercent: commission.commissionPercent || '',
+    poiName: poi.poiName || '',
+    poiLogoUrl: poi.poiLogoUrl || '',
+    distance: formatMeituanDistance(poi.deliveryDistance),
+    availablePoiNum: Number(availablePoi.availablePoiNum) || 0,
+    availablePoiCityNum: Number(availablePoi.availablePoiCityNum) || 0,
+    validTimeText: formatMeituanValidTime(validInfo),
+  };
+}
+
+/**
+ * 获取美团商品详情
+ *
+ * 接口: GET ${BASE_URL}/api/meituan/goodsDetail?productViewSignList=xxx
+ * 入参 productViewSignList 为列表项透出的商品推广标识（作为商品 id）
+ * 成功返回: { success: true, data: { code: 0, message, data: [商品...] } }，取首个商品
+ *
+ * @param {string} productViewSign - 商品推广标识
+ * @returns {Promise<Object|null>} 映射后的商品详情，失败返回 null
+ */
+async function getMeituanGoodsDetail(productViewSign) {
+  try {
+    const url = `${BASE_URL}/api/meituan/goodsDetail?productViewSignList=${encodeURIComponent(productViewSign)}`;
+    console.log('[API] getMeituanGoodsDetail 请求:', url);
+    const result = await request(url);
+    console.log('[API] getMeituanGoodsDetail 响应:', JSON.stringify(result));
+
+    if (!result || !result.success || !result.data || result.data.code !== 0) {
+      console.warn('[API] getMeituanGoodsDetail 返回异常:', result);
+      return null;
+    }
+
+    const rawList = Array.isArray(result.data.data) ? result.data.data : [];
+    const item = rawList[0];
+    if (!item) {
+      console.warn('[API] getMeituanGoodsDetail 商品不存在:', productViewSign);
+      return null;
+    }
+    return mapMeituanGoodsDetail(item);
+  } catch (err) {
+    console.warn('[API] getMeituanGoodsDetail 失败:', err.message);
+    return null;
+  }
+}
+
 // ==================== 吃喝玩乐商品搜索 ====================
 
 /**
@@ -988,6 +1093,7 @@ module.exports = {
   getIndexActivityBanners,
   getMeituanReferralLink,
   getMeituanGoodsReferralLink,
+  getMeituanGoodsDetail,
   searchMeituanGoods,
   getOrderList,
   setUserConfig,

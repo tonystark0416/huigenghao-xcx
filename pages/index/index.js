@@ -4,7 +4,6 @@ const {
   fetchMeituanIndexGoods,
   fetchPddIndexGoods,
   getGoodsTranUrlByGoodsId,
-  getMeituanGoodsReferralLink,
   getMeituanReferralLink,
   getIndexActivityBanners,
   convertLink,
@@ -59,7 +58,6 @@ Component({
     mtList: [],
     mtLoading: false,
     mtLoaded: false,
-    mtJumping: false,
     // 多多好货（tab=3，拼多多商品，切换时加载一次，暂不分页）
     pddList: [],
     pddLoading: false,
@@ -865,50 +863,15 @@ Component({
     },
 
     /**
-     * 美团热销：转链后跳转美团外卖小程序（与吃喝玩乐页逻辑一致）
+     * 美团热销：进入美团团购商品详情页（转链跳转在详情页“前往购买”时进行）
      */
-    async openMeituanGoods(item) {
+    openMeituanGoods(item) {
       const sign = item && item.sign;
       if (!sign) {
         wx.showToast({ title: '商品信息缺失', icon: 'none' });
         return;
       }
-
-      // 转链需要用户 uid，未登录先弹出登录
-      if (!this.ensureLogin(() => this.openMeituanGoods(item))) return;
-
-      if (this.data.mtJumping) return;
-      this.setData({ mtJumping: true });
-
-      wx.showLoading({ title: '获取推广链接...', mask: true });
-      const res = await getMeituanGoodsReferralLink(sign);
-      wx.hideLoading();
-      this.setData({ mtJumping: false });
-
-      if (!res || !res.success || !res.data || !res.data.referralLinkMap) {
-        console.error('[Index] 美团商品转链失败:', res);
-        wx.showToast({ title: '获取推广链接失败，请稍后重试', icon: 'none' });
-        return;
-      }
-
-      const miniProgramPath = res.data.referralLinkMap[MINI_PROGRAM_LINK_KEY];
-      if (!miniProgramPath) {
-        wx.showToast({ title: '该商品暂不支持跳转', icon: 'none' });
-        return;
-      }
-
-      console.log('[Index] 跳转美团小程序, 商品推广路径:', miniProgramPath);
-      wx.navigateToMiniProgram({
-        appId: MEITUAN_APP_ID,
-        path: miniProgramPath,
-        success: () => {
-          console.log('[Index] 美团商品跳转成功');
-        },
-        fail: (err) => {
-          console.error('[Index] 美团商品跳转失败:', err);
-          wx.showToast({ title: '跳转失败，请重试', icon: 'none' });
-        },
-      });
+      wx.navigateTo({ url: `/pages/meituan-goods/meituan-goods?sign=${sign}` });
     },
 
     /**

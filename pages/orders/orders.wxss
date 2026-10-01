@@ -1,6 +1,6 @@
 .orders-page {
   min-height: 100vh;
-  background: #f5f6f7;
+  background: #f5f5f5;
   padding-bottom: 40rpx;
   box-sizing: border-box;
 }
@@ -55,7 +55,14 @@
 }
 
 .empty-icon {
-  font-size: 80rpx;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: rgba(255, 80, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72rpx;
   margin-bottom: 24rpx;
 }
 
@@ -71,8 +78,9 @@
   line-height: 72rpx;
   text-align: center;
   font-size: 28rpx;
-  color: #111;
-  border: 3rpx solid #111;
+  color: #fff;
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  box-shadow: 0 4rpx 12rpx rgba(255, 77, 0, 0.25);
   box-sizing: border-box;
   border-radius: 36rpx;
 }
@@ -212,11 +220,17 @@
   position: relative;
   width: 560rpx;
   background: #fff;
-  border-radius: 24rpx;
+  border-radius: 32rpx;
   padding: 60rpx 48rpx 48rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: dialogPopIn 0.25s ease-out;
+}
+
+@keyframes dialogPopIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .login-title {
@@ -236,13 +250,14 @@
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
-  background: #ffffff;
-  color: #111111;
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  color: #ffffff;
   font-size: 30rpx;
   font-weight: bold;
-  border: 3rpx solid #111111;
+  border: none;
   box-sizing: border-box;
   border-radius: 44rpx;
+  box-shadow: 0 8rpx 20rpx rgba(255, 77, 0, 0.25);
   padding: 0;
 }
 

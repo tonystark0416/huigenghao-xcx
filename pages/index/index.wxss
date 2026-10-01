@@ -4,7 +4,8 @@ page {
   background: #f5f5f5;
 }
 
-/* 顶部搜索栏（固定在视口顶部，顶部间距由 JS 按状态栏高度填充，右侧为胶囊按钮让位收窄） */
+/* 顶部搜索栏（固定在视口顶部，顶部间距由 JS 按状态栏高度填充，右侧为胶囊按钮让位收窄）
+   渐变为垂直方向：底边统一落在 #ff9402，与下方 .page-hero 顶部无缝衔接 */
 .search-bar {
   position: sticky;
   top: 0;
@@ -13,7 +14,7 @@ page {
   align-items: center;
   padding: 0 0 10rpx 32rpx;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  background: linear-gradient(180deg, #ff4d00, #ff9402);
 }
 
 .search-box {
@@ -41,13 +42,22 @@ page {
   color: #bbb;
 }
 
-/* 粘贴购物链接 */
+/* 顶部渐变延伸块：与吸顶搜索栏同色系向下渐隐，滚动时从吸顶栏下滑走 */
+.page-hero {
+  height: 200rpx;
+  margin-bottom: -120rpx;
+  background: linear-gradient(180deg, #ff9402 0%, rgba(255, 148, 2, 0) 100%);
+}
+
+/* 粘贴购物链接（负 margin 上浮，悬浮于渐变之上） */
 .link-section {
+  position: relative;
+  z-index: 10;
   background: #fff;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   padding: 24rpx;
-  margin: 0 24rpx 16rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  margin: 0 24rpx 20rpx;
+  box-shadow: 0 8rpx 30rpx rgba(255, 77, 0, 0.12);
 }
 
 .link-input-wrap {
@@ -78,13 +88,20 @@ page {
   min-width: 172rpx;
   padding: 0 36rpx;
   height: 56rpx;
-  line-height: 56rpx;
+  line-height: 52rpx;
   text-align: center;
   font-size: 26rpx;
+  font-weight: 500;
   color: #ff5000;
   background: #fff;
-  border-radius: 12rpx;
+  border: 2rpx solid rgba(255, 80, 0, 0.55);
+  border-radius: 28rpx;
   margin-top: 12rpx;
+  transition: opacity 0.15s;
+}
+
+.link-paste-btn-hover {
+  opacity: 0.7;
 }
 
 .link-find-btn {
@@ -184,11 +201,12 @@ page {
   text-align: center;
   font-size: 30rpx;
   font-weight: bold;
-  color: #111;
-  background: #fff;
-  border: 3rpx solid #111;
+  color: #fff;
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  border: none;
   box-sizing: border-box;
   border-radius: 40rpx;
+  box-shadow: 0 6rpx 16rpx rgba(255, 77, 0, 0.25);
   padding: 0;
 }
 
@@ -215,6 +233,11 @@ page {
   display: flex;
   align-items: center;
   min-width: 0;
+  transition: transform 0.15s;
+}
+
+.activity-card-hover {
+  transform: scale(0.97);
 }
 
 .activity-head-text {
@@ -301,7 +324,8 @@ page {
 .goods-tab-active {
   color: #fff;
   font-weight: bold;
-  background: linear-gradient(135deg, #ff9402, #ff5000);
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  box-shadow: 0 4rpx 12rpx rgba(255, 77, 0, 0.28);
 }
 
 .waterfall-grid {
@@ -317,11 +341,17 @@ page {
   overflow: hidden;
   margin-bottom: 16rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s;
+}
+
+.goods-card-hover {
+  transform: scale(0.98);
 }
 
 .goods-image {
   width: 100%;
   display: block;
+  background: #f8f8f8;
 }
 
 .goods-info {
@@ -356,8 +386,19 @@ page {
   margin-bottom: 6rpx;
 }
 
+/* “券后”小标签：强化价格语义 */
+.goods-price-flag {
+  font-size: 20rpx;
+  color: #ff5000;
+  background: rgba(255, 80, 0, 0.08);
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+  margin-right: 8rpx;
+  flex-shrink: 0;
+}
+
 .goods-price {
-  font-size: 36rpx;
+  font-size: 34rpx;
   font-weight: bold;
   color: #ff5000;
 }
@@ -366,7 +407,9 @@ page {
   font-size: 22rpx;
   color: #bbb;
   text-decoration: line-through;
-  margin-left: 8rpx;
+  margin-left: auto;
+  padding-left: 8rpx;
+  flex-shrink: 0;
 }
 
 .goods-rebate {
@@ -424,11 +467,17 @@ page {
   position: relative;
   width: 560rpx;
   background: #fff;
-  border-radius: 24rpx;
+  border-radius: 32rpx;
   padding: 60rpx 48rpx 48rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: dialogPopIn 0.25s ease-out;
+}
+
+@keyframes dialogPopIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .login-title {
@@ -448,13 +497,14 @@ page {
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
-  background: #fff;
-  color: #111;
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  color: #fff;
   font-size: 30rpx;
   font-weight: bold;
-  border: 3rpx solid #111;
+  border: none;
   box-sizing: border-box;
   border-radius: 44rpx;
+  box-shadow: 0 8rpx 20rpx rgba(255, 77, 0, 0.25);
   padding: 0;
 }
 

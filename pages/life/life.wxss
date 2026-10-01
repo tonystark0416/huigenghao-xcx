@@ -86,12 +86,13 @@
   height: 72rpx;
   line-height: 72rpx;
   text-align: center;
-  background: #ffffff;
-  color: #111111;
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  color: #ffffff;
   font-size: 28rpx;
   font-weight: 600;
-  border: 3rpx solid #111111;
+  border: none;
   box-sizing: border-box;
+  box-shadow: 0 4rpx 12rpx rgba(255, 77, 0, 0.25);
   border-radius: 40rpx;
 }
 
@@ -126,14 +127,14 @@
 .sort-item-active {
   color: #ff5000;
   font-weight: bold;
-  background: #e5f7f3;
+  background: rgba(255, 80, 0, 0.08);
 }
 
 /* ==================== Banner ==================== */
 
 .banner-card {
   background: #ffffff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   overflow: hidden;
   margin-bottom: 24rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
@@ -183,14 +184,15 @@
 .goods-card {
   display: flex;
   background: #ffffff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   padding: 24rpx;
   margin-bottom: 24rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s;
 }
 
 .goods-card-hover {
-  opacity: 0.85;
+  transform: scale(0.98);
 }
 
 .goods-img {
@@ -322,11 +324,17 @@
   position: relative;
   width: 560rpx;
   background: #fff;
-  border-radius: 24rpx;
+  border-radius: 32rpx;
   padding: 60rpx 48rpx 48rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
+  animation: dialogPopIn 0.25s ease-out;
+}
+
+@keyframes dialogPopIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 .login-title {
@@ -346,13 +354,14 @@
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
-  background: #ffffff;
-  color: #111111;
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  color: #ffffff;
   font-size: 30rpx;
   font-weight: bold;
-  border: 3rpx solid #111111;
+  border: none;
   box-sizing: border-box;
   border-radius: 44rpx;
+  box-shadow: 0 8rpx 20rpx rgba(255, 77, 0, 0.25);
   padding: 0;
 }
 

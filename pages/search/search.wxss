@@ -22,7 +22,7 @@ page {
   display: flex;
   align-items: center;
   padding: 16rpx 24rpx;
-  background: linear-gradient(180deg, #dcf4ef 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #ffe9db 0%, #ffffff 100%);
   gap: 16rpx;
   flex-shrink: 0;
 }
@@ -42,7 +42,7 @@ page {
 
 .search-input-focus {
   border-color: #ff5000;
-  box-shadow: 0 4rpx 16rpx rgba(14, 162, 148, 0.4);
+  box-shadow: 0 4rpx 16rpx rgba(255, 80, 0, 0.3);
 }
 
 .search-icon {
@@ -84,12 +84,12 @@ page {
 
 .search-btn {
   font-size: 28rpx;
-  color: #111;
+  color: #fff;
   font-weight: 600;
   flex-shrink: 0;
-  background: #fff;
-  border: 3rpx solid #111;
-  box-sizing: border-box;
+  background: linear-gradient(135deg, #ff4d00, #ff9402);
+  border: none;
+  box-shadow: 0 4rpx 12rpx rgba(255, 77, 0, 0.25);
   border-radius: 40rpx;
   height: 72rpx;
   padding: 0 28rpx;
@@ -212,7 +212,7 @@ page {
   width: 180rpx;
   height: 180rpx;
   border-radius: 50%;
-  background: #e6f7f3;
+  background: rgba(255, 80, 0, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -247,10 +247,15 @@ page {
   width: calc(50% - 16rpx);
   margin: 8rpx;
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   overflow: hidden;
   position: relative;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s;
+}
+
+.product-card-hover {
+  transform: scale(0.98);
 }
 
 .product-img {
