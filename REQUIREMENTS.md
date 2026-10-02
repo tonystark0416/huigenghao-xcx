@@ -1,6 +1,6 @@
 # 值物APP (huigenghao) 需求文档
 
-> 多平台 CPS 返利小程序 | 版本 v0.14.3  
+> 多平台 CPS 返利小程序 | 版本 v0.14.5  
 > 最后更新：2026-10-03
 
 ---
@@ -130,7 +130,13 @@ huigenghao/
 
 - 授权校验：`GET /api/thirdAuth/checkAuth?uid=xxx&platform=vip|pdd`
 - 获取授权链接：`GET /api/thirdAuth/genAuthUrl?uid=xxx&platform=vip|pdd`（pid 不下发，由后端处理）
-- 未授权时不直接跳转：先弹授权提示窗（标题统一为「授权提醒」，文案统一为「为了能同步你的购物记录，前往购物前需要你进行第三方服务平台授权，以获得更优惠的价格」——弱化营销表述以规避微信审核风险），确认后取 `weapp_url` 跳对应小程序授权页
+- 未授权时不直接跳转：先弹统一的授权提示弹窗（标题「授权提醒」，文案「为了能同步你的购物记录，前往购物前需要你进行第三方服务平台授权，以获得更优惠的价格」——弱化营销表述以规避微信审核风险），确认后取 `weapp_url` 跳对应小程序授权页
+
+**统一授权弹窗封装**（v0.14.5，首页与商品详情页一致）：
+- 弹窗状态：`showAuthModal` + `authPlatform`（弹窗携带待授权平台，当前支持 `vip` / `pdd`）
+- 打开：`openAuthModal(platform)`——platform 由触发场景决定：场景固定平台时传常量（如首页唯品会坑位传 `vip`、多多好货传 `pdd`），或透传上一接口返回的 `needAuthPlatform`（如转链接口 `/api/tranUrl` 的未授权返回）
+- 确认「去授权」：`onConfirmAuth()` 按弹窗携带的 `authPlatform` 调 `GET /api/thirdAuth/genAuthUrl?uid=xxx&platform=xxx` 获取 `weapp_url`，跳对应小程序授权页（跳转 appId：返回 `weapp_app_id` 优先，缺失兜底 vip=`wxe9714e742209d35f` / pdd=`wxa918198f16869201`）
+- 关闭：`closeAuthModal()`（同时清空 `authPlatform`）
 
 **待优化**：
 - [ ] 添加个人中心入口（订单、收益、设置等）
@@ -547,12 +553,24 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 }
 ```
 
+**用户未授权该链接对应平台**（v0.14.4 新增）：接口会判断当前用户粘贴链接对应的平台是否已完成第三方授权，未授权时返回：
+```json
+{
+    "result": true,
+    "code": -1,
+    "needAuthPlatform": "vip",
+    "message": "用户未授权"
+}
+```
+- `needAuthPlatform`：需要授权的平台标识（`vip`=唯品会 / `pdd`=拼多多），前端据此弹出对应平台的授权提示窗（同 4.4 的「授权提醒」弹窗）引导用户去授权，授权完成后再重新转链
+
 **前端处理逻辑**（`utils/api.js` `convertLink()`）：
 1. 校验 `url` 和 `uid` 是否有效
 2. 发起 GET 请求（不传 `platform`，后端自动识别）
 3. 判断 `code === 200` 且 `urls.h5_url` 存在 → 成功
 4. `code === -2` → 提示「暂不支持该平台的链接」
-5. 其他情况 → 提示转换失败
+5. 返回 `needAuthPlatform`（用户未授权该平台）→ 透传 `{ code: -1, needAuthPlatform, message }` 给页面层，页面按平台弹授权提示窗（`openAuthModal`）引导用户去授权（首页 `onFindCoupon` 转链、`openVipActivity` 坑位兜底均已接入）
+6. 其他情况 → 提示转换失败
 
 **UI 交互**：
 - 首页「粘贴购物链接」输入框 → 点击「查找专属优惠」→ 按钮显示「正在转换...」loading 态
@@ -739,6 +757,8 @@ GET /api/tranUrl?uid=xxx&pid=43384525_317172887&source_url=https%3A%2F%2Fp.pindu
 
 | 日期 | 版本 | 变更内容 | 作者 |
 |------|------|----------|------|
+| 2026-10-03 | v0.14.5 | **第三方授权弹窗统一封装**：首页与商品详情页的 vip/pdd 两套授权弹窗及处理方法（`showVipAuthModal`/`showPddAuthModal`、`onConfirmVipAuth`/`onConfirmPddAuth` 等）合并为一套通用弹窗 `showAuthModal` + `authPlatform`——`openAuthModal(platform)` 打开弹窗并携带平台（场景写死或透传上一接口的 `needAuthPlatform`，支持 vip/pdd），「去授权」统一走 `onConfirmAuth()` 按携带平台调 `/api/thirdAuth/genAuthUrl` 获取 `weapp_url` 跳对应小程序授权页（appId 返回 `weapp_app_id` 优先，兜底 vip/pdd 固定值），`closeAuthModal()` 关闭并清空平台；覆盖场景：首页唯品会坑位、首页多多好货、转链未授权（needAuthPlatform 透传）、商品详情页前往购买 | [3.1](#31-首页-pagesindex-)、[3.4](#34-商品详情页-pagesgoods-)、[4.4](#44-第三方平台授权接口-) |
+| 2026-10-03 | v0.14.4 | **「查找专属优惠」转链接入未授权拦截**：`/api/tranUrl` 新增用户授权判定，未授权时返回 `{ result: true, code: -1, needAuthPlatform: 'vip'|'pdd', message: '用户未授权' }`；`utils/api.js` `convertLink()` 识别 `needAuthPlatform` 并透传给页面层；首页新增 `openAuthModal(platform)` 按平台弹授权提示窗（vip→唯品会 / pdd→拼多多，文案同 v0.14.2 的「授权提醒」），`onFindCoupon`（转链按钮）与 `openVipActivity`（唯品会坑位，兜底 checkAuth 与后端判定不一致场景）均接入该处理，引导用户去授权后可重新转链 | [3.1](#31-首页-pagesindex-)、[4.6](#46-链接转换接口-) |
 | 2026-10-03 | v0.14.3 | **console 接口日志统一为结构化输出**：全项目（`utils/api.js` 12 处、`app.js` 2 处）接口响应日志改为「先一行纯文本说明、下一行单独打印对象」两段式，移除所有 `JSON.stringify` 打印，保证开发者工具 console 中对象可折叠树形查看；并在 4.1 新增 console 日志规范作为后续开发约定 | [4.1](#41-通用约定) |
 | 2026-10-03 | v0.14.2 | **第三方授权弹窗文案调整（规避审核过度营销风险）**：三处第三方授权提示弹窗（首页唯品会坑位 / 首页多多好货卡片 / 唯品会商品详情页「前往购买」）标题统一改为「授权提醒」，描述统一改为「为了能同步你的购物记录，前往购物前需要你进行第三方服务平台授权，以获得更优惠的价格」（原「前往唯品会/拼多多授权」+「获取专属推广链接」表述下线） | [3.1](#31-首页-pagesindex-)、[3.4](#34-商品详情页-pagesgoods-)、[4.4](#44-第三方平台授权接口-) |
 | 2026-10-03 | v0.14.1 | **代码清理（无功能变更）**：删除死代码 `utils/api.js` 的 `USER_CONFIG.chanTag`（值 `default_pid`，pid 类参数已下沉到后端处理，前端全项目无读取方） | [2.2](#22-目录结构) |

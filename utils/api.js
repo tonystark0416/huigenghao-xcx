@@ -566,6 +566,16 @@ async function convertLink(url, uid) {
       return { code: -2, message: '暂不支持该平台的链接' };
     }
 
+    // 用户未授权该链接对应平台：接口返回 { result: true, code: -1, needAuthPlatform: 'vip'|'pdd', message }
+    // 透传给页面层，由页面弹对应平台的授权提示窗引导用户去授权
+    if (result.needAuthPlatform) {
+      return {
+        code: -1,
+        needAuthPlatform: result.needAuthPlatform,
+        message: result.message || '用户未授权',
+      };
+    }
+
     // 转换失败
     return { code: -3, message: '链接转换失败，请检查链接是否有效' };
   } catch (err) {

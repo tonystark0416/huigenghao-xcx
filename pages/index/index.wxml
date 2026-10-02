@@ -239,24 +239,13 @@
   </view>
 </view>
 
-<!-- 唯品会授权提示弹窗：点击唯品会坑位未授权时弹出，确认后才跳转授权页 -->
-<view class="login-modal" wx:if="{{showVipAuthModal}}" catchtouchmove="noop">
-  <view class="login-mask" bindtap="closeVipAuthModal"></view>
+<!-- 第三方授权提示弹窗：各场景判定未授权时弹出，authPlatform 决定「去授权」时请求哪个平台的授权链接 -->
+<view class="login-modal" wx:if="{{showAuthModal}}" catchtouchmove="noop">
+  <view class="login-mask" bindtap="closeAuthModal"></view>
   <view class="login-dialog">
     <view class="login-title">授权提醒</view>
     <view class="login-desc">为了能同步你的购物记录，前往购物前需要你进行第三方服务平台授权，以获得更优惠的价格。</view>
-    <button class="login-phone-btn" bindtap="onConfirmVipAuth">去授权</button>
-    <view class="login-skip" bindtap="closeVipAuthModal">暂不授权</view>
-  </view>
-</view>
-
-<!-- 拼多多授权提示弹窗：点击多多好货商品未授权时弹出，确认后才跳转授权页 -->
-<view class="login-modal" wx:if="{{showPddAuthModal}}" catchtouchmove="noop">
-  <view class="login-mask" bindtap="closePddAuthModal"></view>
-  <view class="login-dialog">
-    <view class="login-title">授权提醒</view>
-    <view class="login-desc">为了能同步你的购物记录，前往购物前需要你进行第三方服务平台授权，以获得更优惠的价格。</view>
-    <button class="login-phone-btn" bindtap="onConfirmPddAuth">去授权</button>
-    <view class="login-skip" bindtap="closePddAuthModal">暂不授权</view>
+    <button class="login-phone-btn" bindtap="onConfirmAuth">去授权</button>
+    <view class="login-skip" bindtap="closeAuthModal">暂不授权</view>
   </view>
 </view>

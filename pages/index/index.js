@@ -35,10 +35,10 @@ Component({
     longitude: '',
     latitude: '',
     showLoginModal: false,
-    // 唯品会第三方授权提示弹窗（未授权时提示用户去授权，确认后才跳转）
-    showVipAuthModal: false,
-    // 拼多多第三方授权提示弹窗（多多好货卡片未授权时提示去授权）
-    showPddAuthModal: false,
+    // 第三方授权提示弹窗（未授权时提示用户去授权，确认后调 genAuthUrl 跳对应小程序授权页）
+    showAuthModal: false,
+    // 当前待授权平台（vip=唯品会 / pdd=拼多多）：由触发场景写入（场景写死或透传上一接口的 needAuthPlatform）
+    authPlatform: '',
     // 今日最优惠活动：由 /api/banner/indexBannerList 下发；不足两条或请求失败时整区隐藏（保持空数组）
     activityBanners: [],
     linkInput: '',
@@ -241,12 +241,18 @@ Component({
         if (!isVipAuthed) {
           // 未授权：不直接跳转，先弹窗提示用户去授权，确认后才跳唯品会小程序授权页
           console.log('[Index] 唯品会未授权，弹出授权提示');
-          this.setData({ showVipAuthModal: true });
+          this.openAuthModal(VIP_AUTH_PLATFORM);
           return;
         }
 
         // Step 3: 已授权，转链后跳转唯品会小程序
         const res = await convertLink(url, uid);
+        // 兜底：转链接口判定未授权（与 checkAuth 结果不一致时）→ 弹授权提示窗
+        if (res && res.needAuthPlatform) {
+          console.log('[Index] 唯品会坑位转链返回未授权平台:', res.needAuthPlatform);
+          this.openAuthModal(res.needAuthPlatform);
+          return;
+        }
         if (!res || res.code !== 0 || !res.data || !res.data.weapp_url) {
           console.error('[Index] 唯品会坑位转链失败:', res);
           wx.showToast({ title: '获取推广链接失败，请稍后重试', icon: 'none' });
@@ -352,20 +358,35 @@ Component({
     },
 
     /**
-     * 关闭唯品会授权提示弹窗
+     * 按平台弹出第三方授权提示弹窗
+     * @param {string} platform - 平台标识：vip=唯品会 / pdd=拼多多
+     *   （由触发场景写入：场景固定平台时传常量，或透传上一接口返回的 needAuthPlatform）
      */
-    closeVipAuthModal() {
-      this.setData({ showVipAuthModal: false });
+    openAuthModal(platform) {
+      if (platform !== VIP_AUTH_PLATFORM && platform !== PDD_AUTH_PLATFORM) {
+        console.warn('[Index] 未知的授权平台:', platform);
+        return;
+      }
+      this.setData({ showAuthModal: true, authPlatform: platform });
     },
 
     /**
-     * 唯品会授权提示弹窗「去授权」：
-     * 先 /api/thirdAuth/genAuthUrl 获取小程序授权路径，再跳转唯品会小程序完成授权
+     * 关闭第三方授权提示弹窗
      */
-    async onConfirmVipAuth() {
+    closeAuthModal() {
+      this.setData({ showAuthModal: false, authPlatform: '' });
+    },
+
+    /**
+     * 授权提示弹窗「去授权」：
+     * 按弹窗携带的平台标识调 /api/thirdAuth/genAuthUrl 获取小程序授权路径，跳对应小程序完成授权
+     */
+    async onConfirmAuth() {
+      const platform = this.data.authPlatform;
+      if (!platform) return;
       if (this._authJumping) return;
       this._authJumping = true;
-      this.setData({ showVipAuthModal: false });
+      this.setData({ showAuthModal: false });
 
       const uid = getApp().globalData.userId || '';
       if (!uid) {
@@ -374,29 +395,34 @@ Component({
         return;
       }
 
+      // 各平台授权跳转的兜底小程序 appId（genAuthUrl 返回 weapp_app_id 时以其为准）
+      const platformAppId = platform === PDD_AUTH_PLATFORM ? PDD_APP_ID : VIP_APP_ID;
+
       wx.showLoading({ title: '获取授权链接...', mask: true });
       try {
-        const urlRes = await genAuthUrl(uid, VIP_AUTH_PLATFORM);
+        const urlRes = await genAuthUrl(uid, platform);
         // 真实结构示例: { result: true, authUrl: { h5_url, weapp_url, deeplink_url } }
-        // 用 weapp_url 跳唯品会小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
+        // 用 weapp_url 跳对应小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
         const urlBody = urlRes && (urlRes.authUrl || urlRes.data || urlRes);
         const authPath = (urlBody && (urlBody.weapp_url || (urlBody.authUrl && urlBody.authUrl.weapp_url))) || '';
+        const authAppId = (urlBody && urlBody.weapp_app_id) || platformAppId;
         if (!authPath) {
-          console.error('[Index] 获取唯品会授权链接失败:', urlRes);
+          console.error('[Index] 获取授权链接失败, platform:', platform);
+          console.log(urlRes);
           wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
           return;
         }
-        console.log('[Index] 跳转唯品会授权页, 路径:', authPath);
+        console.log('[Index] 跳转授权页, platform:', platform, 'appId:', authAppId, '路径:', authPath);
         wx.navigateToMiniProgram({
-          appId: VIP_APP_ID,
+          appId: authAppId,
           path: authPath,
           fail: (err) => {
-            console.error('[Index] 跳转唯品会授权页失败:', err);
+            console.error('[Index] 跳转授权页失败:', err);
             wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
           },
         });
       } catch (err) {
-        console.error('[Index] 获取唯品会授权链接异常:', err);
+        console.error('[Index] 获取授权链接异常:', err);
         wx.showToast({ title: '获取授权链接失败，请重试', icon: 'none' });
       } finally {
         wx.hideLoading();
@@ -586,6 +612,14 @@ Component({
         const res = await convertLink(linkInput, uid);
 
         wx.hideLoading();
+
+        // 转链接口判定用户未授权该链接对应平台 → 弹对应平台授权提示窗，引导用户去授权
+        if (res && res.needAuthPlatform) {
+          console.log('[Index] 转链返回未授权平台:', res.needAuthPlatform);
+          this.setData({ linkConverting: false });
+          this.openAuthModal(res.needAuthPlatform);
+          return;
+        }
 
         if (!res || res.code !== 0) {
           const msg = (res && res.message) || '链接转换失败，请检查链接是否有效';
@@ -915,7 +949,7 @@ Component({
         if (!isPddAuthed) {
           // 未授权：不直接跳转，先弹窗提示用户去授权，确认后才跳拼多多小程序授权页
           console.log('[Index] 拼多多未授权，弹出授权提示');
-          this.setData({ showPddAuthModal: true });
+          this.openAuthModal(PDD_AUTH_PLATFORM);
           return;
         }
 
@@ -947,61 +981,6 @@ Component({
       } finally {
         wx.hideLoading();
         this.setData({ pddJumping: false });
-      }
-    },
-
-    /**
-     * 关闭拼多多授权提示弹窗
-     */
-    closePddAuthModal() {
-      this.setData({ showPddAuthModal: false });
-    },
-
-    /**
-     * 拼多多授权提示弹窗「去授权」：
-     * 先 /api/thirdAuth/genAuthUrl（platform=pdd）获取小程序授权路径，再跳拼多多小程序完成授权
-     */
-    async onConfirmPddAuth() {
-      if (this._authJumping) return;
-      this._authJumping = true;
-      this.setData({ showPddAuthModal: false });
-
-      const uid = getApp().globalData.userId || '';
-      if (!uid) {
-        this._authJumping = false;
-        wx.showToast({ title: '请先完成登录授权', icon: 'none' });
-        return;
-      }
-
-      wx.showLoading({ title: '获取授权链接...', mask: true });
-      try {
-        const urlRes = await genAuthUrl(uid, PDD_AUTH_PLATFORM);
-        // 真实结构示例: { result: true, authUrl: { h5_url, weapp_url, deeplink_url } }
-        // 用 weapp_url 跳拼多多小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
-        const urlBody = urlRes && (urlRes.authUrl || urlRes.data || urlRes);
-        const authPath = (urlBody && (urlBody.weapp_url || (urlBody.authUrl && urlBody.authUrl.weapp_url))) || '';
-        // 授权跳转目标 appId：优先取返回的 weapp_app_id，缺失时兜底拼多多固定 appId
-        const authAppId = (urlBody && urlBody.weapp_app_id) || PDD_APP_ID;
-        if (!authPath) {
-          console.error('[Index] 获取拼多多授权链接失败:', urlRes);
-          wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
-          return;
-        }
-        console.log('[Index] 跳转拼多多授权页, appId:', authAppId, '路径:', authPath);
-        wx.navigateToMiniProgram({
-          appId: authAppId,
-          path: authPath,
-          fail: (err) => {
-            console.error('[Index] 跳转拼多多授权页失败:', err);
-            wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
-          },
-        });
-      } catch (err) {
-        console.error('[Index] 获取拼多多授权链接异常:', err);
-        wx.showToast({ title: '获取授权链接失败，请重试', icon: 'none' });
-      } finally {
-        wx.hideLoading();
-        this._authJumping = false;
       }
     },
 

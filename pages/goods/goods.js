@@ -10,8 +10,12 @@ const { BASE_URL } = require('../../utils/config');
 
 // 唯品会小程序 appId
 const VIP_APP_ID = 'wxe9714e742209d35f';
+// 拼多多小程序 appId（授权兜底）
+const PDD_APP_ID = 'wxa918198f16869201';
 // 唯品会第三方授权平台标识（/api/thirdAuth/* 的 platform 参数）
 const VIP_AUTH_PLATFORM = 'vip';
+// 拼多多第三方授权平台标识（/api/thirdAuth/* 的 platform 参数）
+const PDD_AUTH_PLATFORM = 'pdd';
 
 Component({
   properties: {
@@ -31,8 +35,10 @@ Component({
     loading: true,
     goods: null,
     showLoginModal: false,
-    // 唯品会第三方授权提示弹窗（前往购买需校验唯品会授权）
-    showVipAuthModal: false,
+    // 第三方授权提示弹窗（前往购买需校验第三方授权，未授权时弹出）
+    showAuthModal: false,
+    // 当前待授权平台（vip=唯品会 / pdd=拼多多）：由触发场景写入（场景写死或透传上一接口的 needAuthPlatform）
+    authPlatform: '',
     // 悬浮返回按钮的 top 值（与胶囊垂直居中对齐）
     navBackStyle: '',
   },
@@ -179,25 +185,40 @@ Component({
       if (authed) return true;
       // 未授权：弹窗提示用户去授权
       console.log('[Goods] 唯品会未授权，弹出授权提示');
-      this.setData({ showVipAuthModal: true });
+      this.openAuthModal(VIP_AUTH_PLATFORM);
       return false;
     },
 
     /**
-     * 关闭唯品会授权提示弹窗
+     * 按平台弹出第三方授权提示弹窗
+     * @param {string} platform - 平台标识：vip=唯品会 / pdd=拼多多
+     *   （由触发场景写入：场景固定平台时传常量，或透传上一接口返回的 needAuthPlatform）
      */
-    closeVipAuthModal() {
-      this.setData({ showVipAuthModal: false });
+    openAuthModal(platform) {
+      if (platform !== VIP_AUTH_PLATFORM && platform !== PDD_AUTH_PLATFORM) {
+        console.warn('[Goods] 未知的授权平台:', platform);
+        return;
+      }
+      this.setData({ showAuthModal: true, authPlatform: platform });
     },
 
     /**
-     * 唯品会授权提示弹窗「去授权」：
-     * 先 /api/thirdAuth/genAuthUrl 获取小程序授权路径，再跳转唯品会小程序完成授权
+     * 关闭第三方授权提示弹窗
      */
-    async onConfirmVipAuth() {
+    closeAuthModal() {
+      this.setData({ showAuthModal: false, authPlatform: '' });
+    },
+
+    /**
+     * 授权提示弹窗「去授权」：
+     * 按弹窗携带的平台标识调 /api/thirdAuth/genAuthUrl 获取小程序授权路径，跳对应小程序完成授权
+     */
+    async onConfirmAuth() {
+      const platform = this.data.authPlatform;
+      if (!platform) return;
       if (this._authJumping) return;
       this._authJumping = true;
-      this.setData({ showVipAuthModal: false });
+      this.setData({ showAuthModal: false });
 
       const uid = getApp().globalData.userId || '';
       if (!uid) {
@@ -206,29 +227,34 @@ Component({
         return;
       }
 
+      // 各平台授权跳转的兜底小程序 appId（genAuthUrl 返回 weapp_app_id 时以其为准）
+      const platformAppId = platform === PDD_AUTH_PLATFORM ? PDD_APP_ID : VIP_APP_ID;
+
       wx.showLoading({ title: '获取授权链接...', mask: true });
       try {
-        const urlRes = await genAuthUrl(uid, VIP_AUTH_PLATFORM);
+        const urlRes = await genAuthUrl(uid, platform);
         // 真实结构示例: { result: true, authUrl: { h5_url, weapp_url, deeplink_url } }
-        // 用 weapp_url 跳唯品会小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
+        // 用 weapp_url 跳对应小程序授权页；兼容字段位于顶层 / authUrl / data 的多种返回
         const urlBody = urlRes && (urlRes.authUrl || urlRes.data || urlRes);
         const authPath = (urlBody && (urlBody.weapp_url || (urlBody.authUrl && urlBody.authUrl.weapp_url))) || '';
+        const authAppId = (urlBody && urlBody.weapp_app_id) || platformAppId;
         if (!authPath) {
-          console.error('[Goods] 获取唯品会授权链接失败:', urlRes);
+          console.error('[Goods] 获取授权链接失败, platform:', platform);
+          console.log(urlRes);
           wx.showToast({ title: '获取授权链接失败，请稍后重试', icon: 'none' });
           return;
         }
-        console.log('[Goods] 跳转唯品会授权页, 路径:', authPath);
+        console.log('[Goods] 跳转授权页, platform:', platform, 'appId:', authAppId, '路径:', authPath);
         wx.navigateToMiniProgram({
-          appId: VIP_APP_ID,
+          appId: authAppId,
           path: authPath,
           fail: (err) => {
-            console.error('[Goods] 跳转唯品会授权页失败:', err);
+            console.error('[Goods] 跳转授权页失败:', err);
             wx.showToast({ title: '跳转授权页失败，请重试', icon: 'none' });
           },
         });
       } catch (err) {
-        console.error('[Goods] 获取唯品会授权链接异常:', err);
+        console.error('[Goods] 获取授权链接异常:', err);
         wx.showToast({ title: '获取授权链接失败，请重试', icon: 'none' });
       } finally {
         wx.hideLoading();
