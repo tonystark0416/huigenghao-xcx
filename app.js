@@ -82,7 +82,8 @@ App({
         console.log('[Login] 登录成功，userId:', this.globalData.userId);
       } else {
         // 未注册，需要手机号登录
-        console.warn('[Login] loginByOpenid 返回失败，原始结果:', JSON.stringify(loginResult));
+        console.warn('[Login] loginByOpenid 返回失败，原始结果:');
+        console.warn(loginResult);
         this.globalData.needPhoneLogin = true;
       }
     } catch (err) {
@@ -100,7 +101,8 @@ App({
         method: 'GET',
         timeout: 5000,
         success: (res) => {
-          console.log('[Login] /api/weixin/openid 响应:', JSON.stringify(res.data));
+          console.log('[Login] /api/weixin/openid 响应:');
+          console.log(res.data);
           if (res.statusCode === 200) {
             const openid = res.data.openid || '';
             const session_key = res.data.session_key || '';

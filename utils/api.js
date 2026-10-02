@@ -21,7 +21,6 @@ const PLATFORM_NAMES = {
 let USER_CONFIG = {
   uid: '',
   pid: 'mike0416',
-  chanTag: 'default_pid',
   openid: 'default_openid',
 };
 
@@ -386,7 +385,8 @@ async function getProductDetail(goodsId, platform = 'vip') {
     console.log('[API] getProductDetail 请求:', fullUrl);
 
     const rawData = await request(fullUrl);
-    console.log('[API] getProductDetail 响应:', JSON.stringify(rawData));
+    console.log('[API] getProductDetail 响应:');
+    console.log(rawData);
     const result = adaptGoodsDetail(rawData);
 
     if (result) return result;
@@ -414,7 +414,8 @@ async function loginByOpenid(openid) {
 
   try {
     const result = await postRequest(`${BASE_URL}/api/user/loginByOpenid`, { openid });
-    console.log('[API] loginByOpenid 响应:', JSON.stringify(result));
+    console.log('[API] loginByOpenid 响应:');
+    console.log(result);
     return result;
   } catch (err) {
     console.error('[API] 登录请求失败:', err.message);
@@ -466,7 +467,8 @@ async function genAuthUrl(uid, platform) {
       platform ? `platform=${platform}` : '',
     ].filter(Boolean).join('&');
     const result = await request(`${BASE_URL}/api/thirdAuth/genAuthUrl?${query}`);
-    console.log('[API] genAuthUrl 响应:', result);
+    console.log('[API] genAuthUrl 响应:');
+    console.log(result);
     return result;
   } catch (err) {
     console.error('[API] genAuthUrl 失败:', err.message);
@@ -535,7 +537,8 @@ async function convertLink(url, uid) {
 
     const result = await request(fullUrl);
     console.log('[API] convertLink 原始响应类型:', typeof result);
-    console.log('[API] convertLink 响应:', JSON.stringify(result));
+    console.log('[API] convertLink 响应:');
+    console.log(result);
 
     if (!result) {
       return { code: -3, message: '网络异常，请重试' };
@@ -601,7 +604,8 @@ async function getGoodsTranUrlByGoodsId({ goodsId, platform = 'vip', uid = USER_
     const url = `${BASE_URL}/api/tranUrl/genUrlByGoodsId?${query}`;
     console.log('[API] getGoodsTranUrlByGoodsId 请求:', url);
     const result = await request(url);
-    console.log('[API] getGoodsTranUrlByGoodsId 响应:', JSON.stringify(result));
+    console.log('[API] getGoodsTranUrlByGoodsId 响应:');
+    console.log(result);
     return result;
   } catch (err) {
     console.warn('[API] getGoodsTranUrlByGoodsId 失败:', err.message);
@@ -619,7 +623,8 @@ async function getGoodsTranUrlByGoodsId({ goodsId, platform = 'vip', uid = USER_
 async function getBanners() {
   try {
     const result = await request(`${BASE_URL}/api/banner`);
-    console.log('[API] getBanners 响应:', JSON.stringify(result));
+    console.log('[API] getBanners 响应:');
+    console.log(result);
     if (Array.isArray(result)) {
       return result.sort((a, b) => (b.sort || 0) - (a.sort || 0));
     }
@@ -639,7 +644,8 @@ async function getBanners() {
 async function getIndexActivityBanners() {
   try {
     const result = await request(`${BASE_URL}/api/banner/indexBannerList`);
-    console.log('[API] getIndexActivityBanners 响应:', JSON.stringify(result));
+    console.log('[API] getIndexActivityBanners 响应:');
+    console.log(result);
     const arr = Array.isArray(result) ? result : result && Array.isArray(result.data) ? result.data : [];
     return arr.slice().sort((a, b) => (b.sort || 0) - (a.sort || 0));
   } catch (err) {
@@ -659,7 +665,8 @@ async function getMeituanReferralLink(actId) {
     const url = `${BASE_URL}/api/meituan/referral-link-by-act-id?actId=${encodeURIComponent(actId)}&uid=${encodeURIComponent(USER_CONFIG.uid)}`;
     console.log('[API] getMeituanReferralLink 请求:', url);
     const result = await request(url);
-    console.log('[API] getMeituanReferralLink 响应:', JSON.stringify(result));
+    console.log('[API] getMeituanReferralLink 响应:');
+    console.log(result);
     return result;
   } catch (err) {
     console.warn('[API] getMeituanReferralLink 失败:', err.message);
@@ -677,7 +684,8 @@ async function getMeituanGoodsReferralLink(productViewSign) {
   try {
     const url = `${BASE_URL}/api/meituan/referral-link-by-goods-id?productViewSign=${encodeURIComponent(productViewSign)}`;
     const result = await request(url);
-    console.log('[API] getMeituanGoodsReferralLink 响应:', JSON.stringify(result));
+    console.log('[API] getMeituanGoodsReferralLink 响应:');
+    console.log(result);
     return result;
   } catch (err) {
     console.warn('[API] getMeituanGoodsReferralLink 失败:', err.message);
@@ -770,7 +778,8 @@ async function getMeituanGoodsDetail(productViewSign) {
     const url = `${BASE_URL}/api/meituan/goodsDetail?productViewSignList=${encodeURIComponent(productViewSign)}`;
     console.log('[API] getMeituanGoodsDetail 请求:', url);
     const result = await request(url);
-    console.log('[API] getMeituanGoodsDetail 响应:', JSON.stringify(result));
+    console.log('[API] getMeituanGoodsDetail 响应:');
+    console.log(result);
 
     if (!result || !result.success || !result.data || result.data.code !== 0) {
       console.warn('[API] getMeituanGoodsDetail 返回异常:', result);
@@ -875,7 +884,8 @@ async function searchMeituanGoods({ searchText = '', longitude = '', latitude = 
     const url = `${BASE_URL}/api/meituan/goods?${query}`;
     console.log('[API] searchMeituanGoods 请求URL:', url);
     const result = await request(url);
-    console.log('[API] searchMeituanGoods 响应:', JSON.stringify(result));
+    console.log('[API] searchMeituanGoods 响应:');
+    console.log(result);
 
     if (!result || !result.success || !result.data || result.data.code !== 0) {
       console.warn('[API] searchMeituanGoods 返回异常:', result);
@@ -1058,7 +1068,8 @@ async function getOrderList(uid, page = 1, platform = 'vip') {
     const url = `${BASE_URL}/api/order/getList?${query}`;
     console.log('[API] getOrderList 请求URL:', url);
     const result = await request(url);
-    console.log('[API] getOrderList 响应:', JSON.stringify(result));
+    console.log('[API] getOrderList 响应:');
+    console.log(result);
 
     if (!result || !Array.isArray(result.list)) {
       console.warn('[API] getOrderList 返回异常:', result);
